@@ -5,12 +5,26 @@ const uploadResource = async (req, res) => {
   try {
     const { title, subject_id } = req.body;
     
-    if (!req.file) {
+    if (!req.files || !req.files.file) {
        return res.status(400).json({ error: 'No file uploaded' });
     }
     
-    // Store localized path directly via request bounds natively
-    const file_url = `/uploads/${req.file.filename}`;
+    const file = req.files.file;
+    const allowed = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.jpg', '.jpeg', '.png'];
+    const path = require('path');
+    const ext = path.extname(file.name).toLowerCase();
+    
+    if (!allowed.includes(ext)) {
+       return res.status(400).json({ error: 'Invalid file type! Allowed extensions: ' + allowed.join(', ') });
+    }
+
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const filename = uniqueSuffix + ext;
+    const uploadPath = path.join(__dirname, '../uploads', filename);
+
+    await file.mv(uploadPath);
+
+    const file_url = `/uploads/${filename}`;
     const uploaded_by = req.user.id;
 
     const resourceDb = await db.query(
@@ -22,7 +36,7 @@ const uploadResource = async (req, res) => {
     res.status(201).json(resourceDb.rows[0]);
   } catch (error) {
     console.error('Resource upload error:', error.message);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 };
 

@@ -102,7 +102,7 @@ const getStudentDashboard = async (req, res) => {
     const student = studentQuery.rows[0];
 
     const attendanceQuery = await db.query(
-      `SELECT a.total_classes, a.attended_classes, sub.name, sub.code, sub.credits
+      `SELECT a.total_classes, a.attended_classes, sub.id, sub.name, sub.code, sub.credits
        FROM attendance a
        JOIN subjects sub ON a.subject_id = sub.id
        WHERE a.student_id = $1`,
@@ -116,6 +116,7 @@ const getStudentDashboard = async (req, res) => {
       totalClasses += row.total_classes;
       attendedClasses += row.attended_classes;
       return {
+        id: row.id,
         name: row.name,
         code: row.code,
         credits: row.credits,
@@ -174,6 +175,7 @@ const getStaffDashboard = async (req, res) => {
     const studentCount = parseInt(studentsQuery.rows[0].count) || Math.floor(Math.random() * 20 + 30); // use random if zero 
 
     const subjectsHandled = subjectsQuery.rows.map(sub => ({
+      id: sub.id,
       name: sub.name,
       code: sub.code,
       students: studentCount

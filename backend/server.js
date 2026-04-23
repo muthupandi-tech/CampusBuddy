@@ -20,6 +20,15 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
+const fileUpload = require('express-fileupload');
+
+app.use(fileUpload({
+    createParentPath: true,
+    limits: { fileSize: 50 * 1024 * 1024 },
+    abortOnLimit: true,
+    responseOnLimit: 'File size limit has been reached'
+}));
+
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
@@ -88,6 +97,16 @@ io.on('connection', (socket) => {
       }
     }
   });
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Global Error Handler:', err.message);
+  res.status(400).json({ error: err.message || 'An unknown error occurred' });
 });
 
 const PORT = process.env.PORT || 5000;

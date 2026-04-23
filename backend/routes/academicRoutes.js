@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../config/multer');
 const { authMiddleware, roleMiddleware } = require('../middleware/authMiddleware');
 const {
   uploadResource, getResources,
@@ -10,7 +9,7 @@ const {
 } = require('../controllers/academicController');
 
 // Resources mapping securely
-router.post('/resources', authMiddleware, roleMiddleware(['staff']), upload.single('file'), uploadResource);
+router.post('/resources', authMiddleware, roleMiddleware(['staff']), uploadResource);
 router.get('/resources/:subjectId', authMiddleware, getResources); 
 
 // Announcements mapping seamlessly

@@ -192,7 +192,7 @@ const StudentDashboard = () => {
                 <p className="text-xs text-brand-600 mb-4">{res.subject_name}</p>
               </div>
               <a 
-                href={`http://localhost:5000${res.file_url}`} 
+                href={res.file_url} 
                 target="_blank" rel="noreferrer"
                 className="w-full flex items-center justify-center text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg transition-colors gap-2"
               >
@@ -252,13 +252,11 @@ const StaffDashboard = () => {
     formData.append('file', resFile);
 
     try {
-      await api.post('/academic/resources', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await api.post('/academic/resources', formData);
       setStatusMsg({ text: 'Resource uploaded successfully!', type: 'success' });
       setResTitle(''); setResFile(null);
-    } catch {
-      setStatusMsg({ text: 'Failed to upload resource.', type: 'error' });
+    } catch (err) {
+      setStatusMsg({ text: err.response?.data?.error || 'Failed to upload resource.', type: 'error' });
     }
   };
 
