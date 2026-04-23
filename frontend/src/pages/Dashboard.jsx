@@ -10,28 +10,36 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
+  const [annHistory, setAnnHistory] = useState([]);
   const [events, setEvents] = useState([]);
+  const [evtHistory, setEvtHistory] = useState([]);
   const [resources, setResources] = useState([]);
   const [timetable, setTimetable] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [resourceFilter, setResourceFilter] = useState('all');
   const [selectedResource, setSelectedResource] = useState(null);
+  const [annTab, setAnnTab] = useState('active'); // 'active' or 'history'
+  const [evtTab, setEvtTab] = useState('active'); // 'active' or 'history'
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const [resDash, resAnn, resEvt, resRes] = await Promise.all([
+        const [resDash, resAnn, resEvt, resRes, resAnnHist, resEvtHist] = await Promise.all([
           api.get('/users/student/dashboard'),
           api.get('/academic/announcements'),
           api.get('/academic/events'),
-          api.get('/academic/resources/all')
+          api.get('/academic/resources/all'),
+          api.get('/academic/announcements/history'),
+          api.get('/academic/events/history')
         ]);
         
         const dashData = resDash.data;
         setData(dashData);
         setAnnouncements(resAnn.data);
+        setAnnHistory(resAnnHist.data);
         setEvents(resEvt.data);
+        setEvtHistory(resEvtHist.data);
         setResources(resRes.data);
 
         // Fetch Timetable based on user info
@@ -93,41 +101,114 @@ const StudentDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Announcements */}
-        <div className="card p-6 border-t-4 border-indigo-500">
-           <h3 className="text-lg font-bold text-slate-800 flex items-center mb-4">
-             <Megaphone className="h-5 w-5 mr-2 text-indigo-500" /> Recent Announcements
-           </h3>
-           <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-             {announcements.length === 0 ? <p className="text-sm text-slate-500">No new announcements.</p> : announcements.map(ann => (
-               <div key={ann.id} className="p-4 bg-slate-50 rounded-lg shadow-sm border border-slate-100">
-                 <h4 className="font-bold text-slate-800 text-sm">{ann.title}</h4>
-                 <p className="text-xs text-slate-600 mt-1">{ann.description}</p>
-                 <div className="mt-2 text-[10px] text-slate-400 capitalize">Mode: {ann.posted_role} - {new Date(ann.created_at).toLocaleDateString()}</div>
+        <div className="card p-4 border-t-4 border-indigo-500 flex flex-col max-h-[350px] min-h-[200px]">
+           <div className="flex items-center justify-between mb-2">
+             <h3 className="text-lg font-bold text-slate-800 flex items-center">
+               <Megaphone className="h-5 w-5 mr-2 text-indigo-500" /> Announcements
+             </h3>
+             <div className="flex bg-slate-100 p-1 rounded-lg">
+               <button 
+                 onClick={() => setAnnTab('active')}
+                 className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${annTab === 'active' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >
+                 Active
+               </button>
+               <button 
+                 onClick={() => setAnnTab('history')}
+                 className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${annTab === 'history' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >
+                 History
+               </button>
+             </div>
+           </div>
+           
+           <div className="space-y-3 overflow-y-auto pr-2 flex-1 scrollbar-thin">
+             {(annTab === 'active' ? announcements : annHistory).length === 0 ? (
+               <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                 <Megaphone size={40} className="mb-2" />
+                 <p className="text-sm">No {annTab} announcements.</p>
                </div>
-             ))}
+             ) : (annTab === 'active' ? announcements : annHistory).map(ann => {
+               const isNew = (new Date() - new Date(ann.created_at)) < (6 * 60 * 60 * 1000);
+               const date = new Date(ann.created_at);
+               const day = date.getDate();
+               const month = date.toLocaleString('default', { month: 'short' });
+
+               return (
+                 <div key={ann.id} className={`group p-3 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md hover:border-indigo-100 relative bg-white ${annTab === 'history' ? 'opacity-75 grayscale-[0.3]' : ''}`}>
+                   {isNew && annTab === 'active' && (
+                     <span className="absolute top-2 right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg animate-bounce z-10">
+                       NEW
+                     </span>
+                   )}
+                   <div className="flex items-start gap-3">
+                     <div className="flex flex-col items-center justify-center min-w-[50px] h-[50px] bg-indigo-50 text-indigo-600 rounded-xl font-bold border border-indigo-100">
+                       <span className="text-lg leading-none">{day}</span>
+                       <span className="text-[10px] uppercase tracking-tighter">{month}</span>
+                     </div>
+                     <div className="flex-1">
+                       <h4 className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">{ann.title}</h4>
+                       <p className="text-xs text-slate-600 mt-1 line-clamp-2">{ann.description}</p>
+                       <div className="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                         <span>{ann.posted_role}</span>
+                         <span>{ann.posted_by_name}</span>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               );
+             })}
            </div>
         </div>
 
-        {/* Events */}
-        <div className="card p-6 border-t-4 border-brand-500">
-           <h3 className="text-lg font-bold text-slate-800 flex items-center mb-4">
-             <Calendar className="h-5 w-5 mr-2 text-brand-500" /> Upcoming Events
-           </h3>
-           <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-             {events.length === 0 ? <p className="text-sm text-slate-500">No upcoming events.</p> : events.map(ev => (
-               <div key={ev.id} className="flex border-l-4 border-brand-400 bg-white shadow-sm p-4 rounded-r-lg">
-                 <div className="flex-1">
-                   <h4 className="font-bold text-slate-800">{ev.title}</h4>
-                   <p className="text-xs text-slate-500 mt-1">{ev.description}</p>
-                   <p className="text-xs font-semibold text-brand-600 mt-2">📍 {ev.location}</p>
-                 </div>
-                 <div className="ml-4 flex flex-col items-center justify-center bg-brand-50 p-2 rounded-lg text-brand-700 min-w-[70px]">
-                   <span className="text-2xl font-black">{new Date(ev.event_date).getDate()}</span>
-                   <span className="text-xs font-bold uppercase">{new Date(ev.event_date).toLocaleString('default', { month: 'short' })}</span>
-                 </div>
+        <div className="card p-4 border-t-4 border-brand-500 flex flex-col max-h-[350px] min-h-[200px]">
+           <div className="flex items-center justify-between mb-2">
+             <h3 className="text-lg font-bold text-slate-800 flex items-center">
+               <Calendar className="h-5 w-5 mr-2 text-brand-500" /> Campus Events
+             </h3>
+             <div className="flex bg-slate-100 p-1 rounded-lg">
+               <button 
+                 onClick={() => setEvtTab('active')}
+                 className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${evtTab === 'active' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >
+                 Active
+               </button>
+               <button 
+                 onClick={() => setEvtTab('history')}
+                 className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${evtTab === 'history' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >
+                 History
+               </button>
+             </div>
+           </div>
+
+           <div className="space-y-3 overflow-y-auto pr-2 flex-1 scrollbar-thin">
+             {(evtTab === 'active' ? events : evtHistory).length === 0 ? (
+               <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                 <Calendar size={40} className="mb-2" />
+                 <p className="text-sm">No {evtTab} events.</p>
                </div>
-             ))}
+             ) : (evtTab === 'active' ? events : evtHistory).map(ev => {
+               const date = new Date(ev.event_date);
+               const day = date.getDate();
+               const month = date.toLocaleString('default', { month: 'short' });
+
+               return (
+                 <div key={ev.id} className={`group flex border-l-4 border-brand-400 bg-white shadow-sm p-3 rounded-r-2xl transition-all hover:shadow-md hover:translate-x-1 ${evtTab === 'history' ? 'opacity-75 grayscale-[0.3]' : ''}`}>
+                   <div className="flex-1">
+                     <h4 className="font-bold text-slate-800 group-hover:text-brand-600 transition-colors">{ev.title}</h4>
+                     <p className="text-xs text-slate-500 mt-1 line-clamp-2">{ev.description}</p>
+                     <p className="text-xs font-bold text-brand-600 mt-3 inline-flex items-center bg-brand-50 px-2 py-1 rounded-lg">
+                       📍 {ev.location}
+                     </p>
+                   </div>
+                   <div className="ml-4 flex flex-col items-center justify-center bg-brand-50 p-2 rounded-2xl text-brand-700 min-w-[70px] border border-brand-100">
+                     <span className="text-2xl font-black leading-none">{day}</span>
+                     <span className="text-xs font-bold uppercase tracking-tighter">{month}</span>
+                   </div>
+                 </div>
+               );
+             })}
            </div>
         </div>
       </div>

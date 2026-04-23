@@ -82,7 +82,8 @@ const createAnnouncement = async (req, res) => {
     const posted_by = req.user.id;
     
     const announcement = await db.query(
-      `INSERT INTO announcements (title, description, posted_by) VALUES ($1, $2, $3) RETURNING *`,
+      `INSERT INTO announcements (title, description, posted_by, expires_at) 
+       VALUES ($1, $2, $3, NOW() + INTERVAL '24 hours') RETURNING *`,
       [title, description, posted_by]
     );
     
@@ -98,13 +99,29 @@ const createAnnouncement = async (req, res) => {
   }
 };
 
-// @route   GET /api/academic/announcements
 const getAnnouncements = async (req, res) => {
   try {
     const ann = await db.query(
       `SELECT a.*, u.name as posted_by_name, u.role as posted_role 
        FROM announcements a 
        JOIN users u ON a.posted_by = u.id 
+       WHERE a.expires_at > NOW()
+       ORDER BY a.created_at DESC`
+    );
+    res.json(ann.rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// @route   GET /api/academic/announcements/history
+const getAnnouncementHistory = async (req, res) => {
+  try {
+    const ann = await db.query(
+      `SELECT a.*, u.name as posted_by_name, u.role as posted_role 
+       FROM announcements a 
+       JOIN users u ON a.posted_by = u.id 
+       WHERE a.expires_at <= NOW()
        ORDER BY a.created_at DESC`
     );
     res.json(ann.rows);
@@ -135,11 +152,19 @@ const createEvent = async (req, res) => {
   }
 };
 
-// @route   GET /api/academic/events
 const getEvents = async (req, res) => {
   try {
-    // Return all events ORDERED BY incoming upcoming events sequentially
-    const ev = await db.query(`SELECT * FROM events ORDER BY event_date ASC`);
+    const ev = await db.query(`SELECT * FROM events WHERE event_date >= CURRENT_DATE ORDER BY event_date ASC`);
+    res.json(ev.rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// @route   GET /api/academic/events/history
+const getEventHistory = async (req, res) => {
+  try {
+    const ev = await db.query(`SELECT * FROM events WHERE event_date < CURRENT_DATE ORDER BY event_date DESC`);
     res.json(ev.rows);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -175,7 +200,7 @@ const getTimetable = async (req, res) => {
 
 module.exports = {
   uploadResource, getResources,
-  createAnnouncement, getAnnouncements,
-  createEvent, getEvents,
+  createAnnouncement, getAnnouncements, getAnnouncementHistory,
+  createEvent, getEvents, getEventHistory,
   getTimetable
 };
