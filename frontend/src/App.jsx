@@ -32,7 +32,7 @@ const AuthRoute = ({ children }) => {
   }
 
   if (user) {
-    return <Navigate to={`/${user.role}/dashboard`} replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -68,19 +68,7 @@ function App() {
           </AuthRoute>
         } />
 
-        <Route path="/student/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/staff/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/admin/dashboard" element={
+        <Route path="/dashboard" element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>

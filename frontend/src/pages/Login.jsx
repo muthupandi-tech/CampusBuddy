@@ -19,7 +19,7 @@ const Login = () => {
     setIsLoading(true);
     try {
       const res = await login(formData.emailPhone, formData.password);
-      navigate(`/${res.user.role}/dashboard`);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to login. Please try again.');
     } finally {

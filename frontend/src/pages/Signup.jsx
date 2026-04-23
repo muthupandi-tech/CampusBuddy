@@ -91,7 +91,7 @@ const Signup = () => {
 
     try {
       const res = await signup(submitData);
-      navigate(`/${res.user.role}/dashboard`);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid OTP or registration failed.');
     } finally {
