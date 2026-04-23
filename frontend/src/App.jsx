@@ -7,6 +7,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Messages from './pages/Messages';
+import Analytics from './pages/Analytics';
 
 // A simple protective wrapper for routes
 const ProtectedRoute = ({ children }) => {
@@ -77,6 +78,12 @@ function App() {
         <Route path="/messages" element={
           <ProtectedRoute>
             <Messages />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/analytics" element={
+          <ProtectedRoute>
+            <Analytics />
           </ProtectedRoute>
         } />
       </Routes>

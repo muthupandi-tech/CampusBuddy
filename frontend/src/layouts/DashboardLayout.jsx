@@ -7,8 +7,10 @@ import {
   LogOut, 
   User, 
   Settings,
-  Bell
+  BarChart3
 } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
+import Chatbot from '../components/Chatbot';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
@@ -22,6 +24,7 @@ const DashboardLayout = ({ children }) => {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Analytics', path: '/analytics', icon: BarChart3 },
     { name: 'Messages', path: '/messages', icon: MessageSquare },
   ];
 
@@ -73,10 +76,8 @@ const DashboardLayout = ({ children }) => {
           </div>
           
           <div className="flex-1 flex justify-end items-center space-x-4">
-            <button className="text-slate-400 hover:text-slate-500">
-              <Bell className="w-5 h-5" />
-            </button>
-            <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">
+            <NotificationBell />
+            <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold border border-brand-200">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
           </div>
@@ -89,6 +90,8 @@ const DashboardLayout = ({ children }) => {
           </div>
         </div>
       </main>
+      
+      <Chatbot />
       
       {/* Mobile Nav Bar - Simple Bottom Bar for MVP */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around p-2">

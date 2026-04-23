@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { createNotification } = require('./notificationController');
 
 // @route   POST /api/academic/resources
 const uploadResource = async (req, res) => {
@@ -34,6 +35,19 @@ const uploadResource = async (req, res) => {
     );
 
     res.status(201).json(resourceDb.rows[0]);
+
+    // Trigger Notifications for students in this subject
+    const studentsInSubject = await db.query(
+      `SELECT DISTINCT s.user_id 
+       FROM students s
+       JOIN attendance a ON s.id = a.student_id
+       WHERE a.subject_id = $1`,
+      [subject_id]
+    );
+
+    studentsInSubject.rows.forEach(student => {
+      createNotification(student.user_id, `New study resource uploaded for your subject: ${title}`, 'resource');
+    });
   } catch (error) {
     console.error('Resource upload error:', error.message);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -73,6 +87,12 @@ const createAnnouncement = async (req, res) => {
     );
     
     res.status(201).json(announcement.rows[0]);
+
+    // Notify all students/staff
+    const allUsers = await db.query('SELECT id FROM users WHERE id != $1', [posted_by]);
+    allUsers.rows.forEach(user => {
+      createNotification(user.id, `New Announcement: ${title}`, 'announcement');
+    });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -104,6 +124,12 @@ const createEvent = async (req, res) => {
     );
     
     res.status(201).json(ev.rows[0]);
+
+    // Notify all users about new event
+    const allUsers = await db.query('SELECT id FROM users');
+    allUsers.rows.forEach(user => {
+      createNotification(user.id, `New Event Scheduled: ${title}`, 'event');
+    });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }

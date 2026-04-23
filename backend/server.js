@@ -13,8 +13,9 @@ const server = http.createServer(app);
 
 // Configuring CORS
 const corsOptions = {
-  origin: '*', // For MVP phase, allowing all origins. Should restrict to frontend URL in prod.
+  origin: process.env.FRONTEND_URL || '*', 
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -33,6 +34,9 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/academic', require('./routes/academicRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/chatbot', require('./routes/chatbotRoutes'));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -83,6 +87,11 @@ io.on('connection', (socket) => {
         io.to(senderSocketId).emit('receive_message', newMsg.rows[0]);
       }
 
+      // Create a persistent notification for the receiver
+      const { createNotification } = require('./controllers/notificationController');
+      const senderNameQuery = await db.query('SELECT name FROM users WHERE id = $1', [sender_id]);
+      const senderName = senderNameQuery.rows[0]?.name || 'Someone';
+      await createNotification(receiver_id, `New message from ${senderName}: "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"`, 'message');
     } catch (error) {
       console.error('Error saving message via socket:', error);
     }
