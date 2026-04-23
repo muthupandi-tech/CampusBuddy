@@ -91,25 +91,25 @@ const Chatbot = () => {
         {!isOpen && (
           <button 
             onClick={() => setIsOpen(true)}
-            className="chat-drag-handle h-14 w-14 rounded-full bg-brand-600 text-white shadow-2xl flex items-center justify-center hover:bg-brand-700 hover:scale-110 transition-all group cursor-move"
+            className="chat-drag-handle h-14 w-14 rounded-full bg-brand-600 dark:bg-brand-500 text-white shadow-2xl flex items-center justify-center hover:bg-brand-700 dark:hover:bg-brand-600 hover:scale-110 transition-all group cursor-move"
           >
             <MessageSquare className="group-hover:animate-bounce pointer-events-none" />
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-800"></span>
           </button>
         )}
 
         {/* Chat Window */}
         {isOpen && (
-          <div className="chat-drag-handle w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden animate-fade-in-up cursor-move">
+          <div className="chat-drag-handle w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col overflow-hidden animate-fade-in-up cursor-move transition-colors duration-300">
             {/* Header */}
-            <div className="chat-drag-handle p-4 bg-brand-600 text-white flex items-center justify-between cursor-move select-none">
+            <div className="chat-drag-handle p-4 bg-brand-600 dark:bg-brand-700 text-white flex items-center justify-between cursor-move select-none">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                   <Bot size={24} />
                 </div>
                 <div>
                   <h3 className="font-bold">CampusBuddy AI</h3>
-                  <p className="text-[10px] text-brand-100 font-medium">Drag to move • Always online</p>
+                  <p className="text-[10px] text-brand-100 dark:text-brand-200 font-medium">Drag to move • Always online</p>
                 </div>
               </div>
               <button 
@@ -121,14 +121,14 @@ const Chatbot = () => {
             </div>
 
             {/* Messages */}
-            <div className="h-96 overflow-y-auto p-4 space-y-4 bg-slate-50 scrollbar-thin cursor-default">
+            <div className="h-96 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50 scrollbar-thin cursor-default transition-colors">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
                   <div className={`flex gap-2 max-w-[85%] ${msg.isBot ? 'flex-row' : 'flex-row-reverse'}`}>
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${msg.isBot ? 'bg-brand-100 text-brand-600' : 'bg-slate-200 text-slate-600'}`}>
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${msg.isBot ? 'bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
                       {msg.isBot ? <Bot size={16} /> : <User size={16} />}
                     </div>
-                    <div className={`p-3 rounded-2xl text-sm shadow-sm ${msg.isBot ? 'bg-white text-slate-700 rounded-tl-none' : 'bg-brand-600 text-white rounded-tr-none'}`}>
+                    <div className={`p-3 rounded-2xl text-sm shadow-sm ${msg.isBot ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none border border-slate-100/50 dark:border-slate-700' : 'bg-brand-600 dark:bg-brand-500 text-white rounded-tr-none'}`}>
                       {msg.text}
                     </div>
                   </div>
@@ -137,12 +137,12 @@ const Chatbot = () => {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="flex gap-2 max-w-[85%]">
-                    <div className="h-8 w-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-full bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center">
                       <Bot size={16} />
                     </div>
-                    <div className="p-3 bg-white rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
-                      <Loader2 size={16} className="animate-spin text-brand-500" />
-                      <span className="text-xs text-slate-400 font-medium italic">Buddy is thinking...</span>
+                    <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2 border border-slate-100/50 dark:border-slate-700">
+                      <Loader2 size={16} className="animate-spin text-brand-500 dark:text-brand-400" />
+                      <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">Buddy is thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -151,19 +151,19 @@ const Chatbot = () => {
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className="p-4 bg-white border-t border-slate-100 cursor-default">
+            <form onSubmit={handleSend} className="p-4 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 cursor-default transition-colors">
               <div className="flex gap-2">
                 <input 
                   type="text" 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask about attendance, timetable..."
-                  className="flex-1 px-4 py-2 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-brand-500 transition-all"
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 />
                 <button 
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className="p-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-all"
+                  className="p-2 bg-brand-600 dark:bg-brand-500 text-white rounded-xl hover:bg-brand-700 dark:hover:bg-brand-600 disabled:opacity-50 transition-all"
                 >
                   <Send size={20} />
                 </button>

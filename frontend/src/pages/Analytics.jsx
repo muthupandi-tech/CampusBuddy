@@ -43,8 +43,8 @@ const Analytics = () => {
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in-up">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Performance Analytics</h1>
-          <p className="text-slate-500">Visual insights into your academic journey</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 transition-colors">Performance Analytics</h1>
+          <p className="text-slate-500 dark:text-slate-400">Visual insights into your academic journey</p>
         </div>
 
         {user.role === 'student' && data && (
@@ -52,17 +52,23 @@ const Analytics = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Subject Wise Attendance Bar Chart */}
               <div className="card p-6 border-t-4 border-indigo-500">
-                <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
                   <Activity className="text-indigo-500" size={20} /> Subject-wise Attendance (%)
                 </h3>
                 <div className="h-80 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.attendanceStats}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+                      <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{fill: 'var(--chart-tick)', fontSize: 12}} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--chart-tick)', fontSize: 12}} />
                       <Tooltip 
-                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                        contentStyle={{
+                          borderRadius: '12px', 
+                          border: 'none', 
+                          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                          backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#fff',
+                          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#1e293b'
+                        }}
                       />
                       <Bar dataKey="percentage" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} />
                     </BarChart>
@@ -72,7 +78,7 @@ const Analytics = () => {
 
               {/* Attendance Trend Line Chart */}
               <div className="card p-6 border-t-4 border-brand-500">
-                <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
                   <TrendingUp className="text-brand-500" size={20} /> Monthly Attendance Trend
                 </h3>
                 <div className="h-80 w-full">
@@ -84,11 +90,17 @@ const Analytics = () => {
                           <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: 'var(--chart-tick)', fontSize: 12}} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--chart-tick)', fontSize: 12}} />
                       <Tooltip 
-                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                        contentStyle={{
+                          borderRadius: '12px', 
+                          border: 'none', 
+                          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                          backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#fff',
+                          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#1e293b'
+                        }}
                       />
                       <Area type="monotone" dataKey="attendance" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" />
                     </AreaChart>
@@ -98,20 +110,20 @@ const Analytics = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <div className="card p-6 bg-indigo-50 border-none">
-                  <Award className="h-10 w-10 text-indigo-600 mb-2" />
-                  <h4 className="text-slate-500 text-sm font-medium">Top Performer</h4>
-                  <p className="text-2xl font-bold text-slate-800">Advanced AI</p>
+               <div className="card p-6 bg-indigo-50 dark:bg-indigo-900/20 border-none transition-colors">
+                  <Award className="h-10 w-10 text-indigo-600 dark:text-indigo-400 mb-2" />
+                  <h4 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Top Performer</h4>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">Advanced AI</p>
                </div>
-               <div className="card p-6 bg-emerald-50 border-none">
-                  <TrendingUp className="h-10 w-10 text-emerald-600 mb-2" />
-                  <h4 className="text-slate-500 text-sm font-medium">Avg. Attendance</h4>
-                  <p className="text-2xl font-bold text-slate-800">82.5%</p>
+               <div className="card p-6 bg-emerald-50 dark:bg-emerald-900/20 border-none transition-colors">
+                  <TrendingUp className="h-10 w-10 text-emerald-600 dark:text-emerald-400 mb-2" />
+                  <h4 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Avg. Attendance</h4>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">82.5%</p>
                </div>
-               <div className="card p-6 bg-rose-50 border-none">
-                  <Activity className="h-10 w-10 text-rose-600 mb-2" />
-                  <h4 className="text-slate-500 text-sm font-medium">Target to 100%</h4>
-                  <p className="text-2xl font-bold text-slate-800">17.5%</p>
+               <div className="card p-6 bg-rose-50 dark:bg-rose-900/20 border-none transition-colors">
+                  <Activity className="h-10 w-10 text-rose-600 dark:text-rose-400 mb-2" />
+                  <h4 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Target to 100%</h4>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">17.5%</p>
                </div>
             </div>
           </>

@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --chart-grid: #f1f5f9;
+    --chart-tick: #64748b;
+  }
+  .dark {
+    --chart-grid: #334155;
+    --chart-tick: #94a3b8;
+  }
   body {
     @apply bg-slate-50 text-slate-900 transition-colors duration-300;
   }

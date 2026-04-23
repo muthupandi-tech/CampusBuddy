@@ -5,7 +5,7 @@ const db = require('../config/db');
 const getMe = async (req, res) => {
   try {
     const userResult = await db.query(
-      'SELECT id, name, email, phone, role, department, year, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, phone, role, department, year, avatar_url, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
 
@@ -196,4 +196,64 @@ const getStaffDashboard = async (req, res) => {
   }
 };
 
-module.exports = { getMe, getStaffList, getStudentList, getAdminStats, getStudentDashboard, getStaffDashboard };
+// @route   PUT /api/users/profile
+// @desc    Update user profile
+const updateProfile = async (req, res) => {
+  const { name, phone, department, year, avatar_url } = req.body;
+  const user_id = req.user.id;
+
+  try {
+    const yearVal = year ? parseInt(year) : null;
+
+    // 1. Update the main users table
+    const result = await db.query(
+      `UPDATE users 
+       SET name = COALESCE($1, name), 
+           phone = COALESCE($2, phone), 
+           department = COALESCE($3, department), 
+           year = COALESCE($4, year),
+           avatar_url = COALESCE($5, avatar_url)
+       WHERE id = $6 RETURNING id, name, email, role, department, year, avatar_url`,
+      [name, phone, department, yearVal, avatar_url, user_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const updatedUser = result.rows[0];
+
+    // 2. Sync with role-specific tables to ensure dashboard consistency
+    if (updatedUser.role === 'student') {
+      await db.query(
+        `UPDATE students 
+         SET department = COALESCE($1, department), 
+             year = COALESCE($2, year) 
+         WHERE user_id = $3`,
+        [department, yearVal, user_id]
+      );
+    } else if (updatedUser.role === 'staff') {
+      await db.query(
+        `UPDATE staff 
+         SET department = COALESCE($1, department)
+         WHERE user_id = $2`,
+        [department, user_id]
+      );
+    }
+
+    res.json({ message: 'Profile updated successfully', user: updatedUser });
+  } catch (error) {
+    console.error('Update profile error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { 
+  getMe, 
+  getStaffList, 
+  getStudentList, 
+  getAdminStats, 
+  getStudentDashboard, 
+  getStaffDashboard,
+  updateProfile
+};
