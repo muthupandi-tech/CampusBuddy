@@ -38,7 +38,11 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/chatbot', require('./routes/chatbotRoutes'));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, path) => {
+    res.set('Content-Disposition', 'inline');
+  }
+}));
 
 // Basic health check route
 app.get('/', (req, res) => {

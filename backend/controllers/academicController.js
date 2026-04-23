@@ -11,7 +11,7 @@ const uploadResource = async (req, res) => {
     }
     
     const file = req.files.file;
-    const allowed = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.jpg', '.jpeg', '.png'];
+    const allowed = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.jpg', '.jpeg', '.png', '.mp4'];
     const path = require('path');
     const ext = path.extname(file.name).toLowerCase();
     

@@ -1,7 +1,8 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { BookOpen, UserCheck, Users, Activity, MessageSquare, Loader2, Calendar, Megaphone, FileText, UploadCloud, DownloadCloud } from 'lucide-react';
+import { BookOpen, UserCheck, Users, Activity, MessageSquare, Loader2, Calendar, Megaphone, FileText, UploadCloud, DownloadCloud, Eye, Image as ImageIcon, Play, File } from 'lucide-react';
+import ResourceViewer from '../components/ResourceViewer';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [resourceFilter, setResourceFilter] = useState('all');
+  const [selectedResource, setSelectedResource] = useState(null);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -181,26 +183,50 @@ const StudentDashboard = () => {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredResources.length === 0 ? (
-            <p className="text-slate-500 text-sm col-span-full">No resources uploaded yet.</p>
-          ) : filteredResources.map(res => (
-            <div key={res.id} className="border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:shadow-lg transition-shadow bg-white">
-              <div>
-                <div className="flex justify-center items-center h-16 w-16 bg-rose-50 text-rose-500 rounded-lg mb-4">
-                  <FileText size={32} />
+            <p className="text-slate-500 text-sm col-span-full text-center py-8">No resources uploaded yet.</p>
+          ) : filteredResources.map(res => {
+            const ext = res.file_url.split('.').pop().toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(ext);
+            const isVideo = ['mp4', 'webm', 'ogg'].includes(ext);
+            const isPdf = ext === 'pdf';
+
+            return (
+              <div key={res.id} className="group border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:shadow-xl hover:border-brand-200 transition-all bg-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <div className="h-2 w-2 rounded-full bg-brand-500 animate-pulse"></div>
                 </div>
-                <h4 className="font-bold text-slate-800 text-sm mb-1 line-clamp-2">{res.title}</h4>
-                <p className="text-xs text-brand-600 mb-4">{res.subject_name}</p>
+                <div>
+                  <div className={`flex justify-center items-center h-16 w-16 rounded-2xl mb-4 transition-transform group-hover:scale-110 duration-300 ${
+                    isPdf ? 'bg-rose-50 text-rose-500' : 
+                    isImage ? 'bg-blue-50 text-blue-500' : 
+                    isVideo ? 'bg-amber-50 text-amber-500' : 
+                    'bg-slate-50 text-slate-500'
+                  }`}>
+                    {isPdf && <FileText size={32} />}
+                    {isImage && <ImageIcon size={32} />}
+                    {isVideo && <Play size={32} />}
+                    {!isPdf && !isImage && !isVideo && <File size={32} />}
+                  </div>
+                  <h4 className="font-bold text-slate-800 text-sm mb-1 line-clamp-2 group-hover:text-brand-600 transition-colors">{res.title}</h4>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">{res.subject_name}</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedResource(res)}
+                  className="w-full flex items-center justify-center text-sm font-bold text-white bg-slate-800 hover:bg-brand-600 py-2.5 rounded-xl transition-all gap-2 shadow-lg shadow-slate-100"
+                >
+                  <Eye size={16} /> View Resource
+                </button>
               </div>
-              <a 
-                href={res.file_url} 
-                target="_blank" rel="noreferrer"
-                className="w-full flex items-center justify-center text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg transition-colors gap-2"
-              >
-                <DownloadCloud size={16} /> Download
-              </a>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
+        {selectedResource && (
+          <ResourceViewer 
+            resource={selectedResource} 
+            onClose={() => setSelectedResource(null)} 
+          />
+        )}
       </div>
     </div>
   );
