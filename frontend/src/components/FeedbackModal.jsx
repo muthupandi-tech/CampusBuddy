@@ -33,7 +33,7 @@ const FeedbackModal = ({ onClose }) => {
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-zoom-in transition-colors duration-300">
+      <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-zoom-in transition-colors duration-300 no-scrollbar">
         <div className="flex items-center justify-between p-6 border-b border-slate-50 dark:border-slate-700/50">
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Share Feedback</h3>
           <button onClick={onClose} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors">

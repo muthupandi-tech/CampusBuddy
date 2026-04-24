@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const bcrypt = require('bcrypt');
 
 // @route   GET /api/users/me
 // @desc    Get current user profile
@@ -248,6 +249,50 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// @route   PUT /api/users/change-password
+// @desc    Change user password
+const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const user_id = req.user.id;
+
+  try {
+    const userResult = await db.query('SELECT password FROM users WHERE id = $1', [user_id]);
+    if (userResult.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+    const user = userResult.rows[0];
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(400).json({ error: 'Incorrect current password' });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, user_id]);
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Change password error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// @route   PUT /api/users/preferences
+// @desc    Update user preferences (e.g., mute notifications)
+const updatePreferences = async (req, res) => {
+  const { muted_until } = req.body;
+  const user_id = req.user.id;
+
+  try {
+    // muted_until should be a date string or null
+    await db.query(
+      'UPDATE users SET muted_until = $1 WHERE id = $2',
+      [muted_until, user_id]
+    );
+    res.json({ message: 'Preferences updated successfully' });
+  } catch (error) {
+    console.error('Update preferences error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 module.exports = { 
   getMe, 
   getStaffList, 
@@ -255,5 +300,7 @@ module.exports = {
   getAdminStats, 
   getStudentDashboard, 
   getStaffDashboard,
-  updateProfile
+  updateProfile,
+  changePassword,
+  updatePreferences
 };

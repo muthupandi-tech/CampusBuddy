@@ -43,6 +43,16 @@ const markAllAsRead = async (req, res) => {
 // Utility function to create notification
 const createNotification = async (user_id, message, type) => {
   try {
+    // Check if user has notifications muted
+    const userResult = await db.query('SELECT muted_until FROM users WHERE id = $1', [user_id]);
+    if (userResult.rows.length > 0) {
+      const mutedUntil = userResult.rows[0].muted_until;
+      if (mutedUntil && new Date(mutedUntil) > new Date()) {
+        console.log(`Notification suppressed for user ${user_id} (muted until ${mutedUntil})`);
+        return;
+      }
+    }
+
     await db.query(
       'INSERT INTO notifications (user_id, message, type) VALUES ($1, $2, $3)',
       [user_id, message, type]

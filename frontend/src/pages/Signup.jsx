@@ -112,20 +112,20 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 py-12">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in-up">
-        <div className="p-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 py-12 transition-colors">
+      <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden animate-fade-in-up transition-colors">
+        <div className="p-6 sm:p-8">
           <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold text-slate-800">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
               {step === 1 ? 'Create Account' : 'Verify Email'}
             </h2>
-            <p className="text-slate-500 mt-2">
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
               {step === 1 ? 'Join CampusBuddy today' : `We sent a code to ${formData.email}`}
             </p>
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center animate-fade-in-up">
+            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-6 text-center animate-fade-in-up border border-red-100 dark:border-red-800">
               {error}
             </div>
           )}
@@ -133,56 +133,56 @@ const Signup = () => {
           {step === 1 ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
                 <input 
                   type="text" 
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="input-field" 
+                  className="input-field dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500" 
                   required
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
                   <input 
                     type="email" 
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="input-field" 
+                    className="input-field dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500" 
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone</label>
                   <input 
                     type="text" 
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="input-field" 
+                    className="input-field dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500" 
                   />
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
                 <div className="relative">
                   <input 
                     type={showPassword ? "text" : "password"} 
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="input-field pr-10" 
+                    className="input-field pr-10 dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500" 
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -190,39 +190,39 @@ const Signup = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role</label>
                 <select 
                   name="role" 
                   value={formData.role} 
                   onChange={handleChange}
-                  className="input-field bg-white"
+                  className="input-field bg-white dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100"
                 >
-                  <option value="student">Student</option>
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
+                  <option value="student" className="dark:bg-slate-800">Student</option>
+                  <option value="staff" className="dark:bg-slate-800">Staff</option>
+                  <option value="admin" className="dark:bg-slate-800">Admin</option>
                 </select>
               </div>
 
               {formData.role === 'student' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department</label>
                       <input 
                         type="text" 
                         name="department"
                         value={formData.department}
                         onChange={handleChange}
-                        className="input-field" 
+                        className="input-field dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500" 
                       />
                   </div>
                   <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Year</label>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Year</label>
                       <input 
                         type="number" 
                         name="year"
                         value={formData.year}
                         onChange={handleChange}
-                        className="input-field" 
+                        className="input-field dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500" 
                         min="1" max="5"
                       />
                   </div>
@@ -231,13 +231,13 @@ const Signup = () => {
               
               {formData.role === 'staff' && (
                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department</label>
                     <input 
                       type="text" 
                       name="department"
                       value={formData.department}
                       onChange={handleChange}
-                      className="input-field" 
+                      className="input-field dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500" 
                     />
                  </div>
               )}
@@ -252,17 +252,18 @@ const Signup = () => {
             </form>
           ) : (
             <form onSubmit={handleVerifyOtpAndSignup} className="space-y-6 animate-fade-in-up">
-              <div className="flex justify-center gap-2 mb-4">
+              <div className="flex justify-center gap-2 sm:gap-3 mb-4">
                 {otp.map((data, index) => (
                   <input
                     key={index}
                     type="text"
+                    inputMode="numeric"
                     maxLength="1"
                     ref={el => otpInputRefs.current[index] = el}
                     value={data}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    className="w-12 h-14 text-center text-xl font-bold bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
+                    className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900/60 border-2 border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:focus:border-brand-400 transition-all caret-brand-600"
                   />
                 ))}
               </div>
@@ -275,14 +276,14 @@ const Signup = () => {
                 {isLoading ? 'Verifying & Registering...' : 'Verify & Register'}
               </button>
               
-              <div className="text-center text-sm text-slate-500 mt-4">
+              <div className="text-center text-sm text-slate-500 dark:text-slate-400 mt-4">
                 {timer > 0 ? (
-                  <p>Resend OTP in <span className="font-medium text-slate-700">{timer}s</span></p>
+                  <p>Resend OTP in <span className="font-medium text-slate-700 dark:text-slate-200">{timer}s</span></p>
                 ) : (
                   <button 
                     type="button" 
                     onClick={handleResendOtp}
-                    className="font-medium text-brand-600 hover:text-brand-500 underline"
+                    className="font-medium text-brand-600 dark:text-brand-400 hover:text-brand-500 underline"
                   >
                     Resend OTP
                   </button>
@@ -292,7 +293,7 @@ const Signup = () => {
                 <button 
                     type="button" 
                     onClick={() => setStep(1)}
-                    className="text-xs text-slate-400 hover:text-slate-600"
+                    className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                   >
                     Back to Form
                 </button>
@@ -300,8 +301,8 @@ const Signup = () => {
             </form>
           )}
           
-          <div className="mt-6 text-center text-sm text-slate-600">
-            Already have an account? <Link to="/login" className="font-medium text-brand-600 hover:text-brand-500">Sign in</Link>
+          <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+            Already have an account? <Link to="/login" className="font-medium text-brand-600 dark:text-brand-400 hover:text-brand-500">Sign in</Link>
           </div>
         </div>
       </div>
