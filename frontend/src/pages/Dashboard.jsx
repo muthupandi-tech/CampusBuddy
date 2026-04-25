@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { BookOpen, UserCheck, Users, Activity, MessageSquare, Loader2, Calendar, Megaphone, FileText, UploadCloud, DownloadCloud, Eye, Image as ImageIcon, Play, File } from 'lucide-react';
+import { BookOpen, UserCheck, Users, Activity, MessageSquare, Loader2, Calendar, Megaphone, FileText, UploadCloud, DownloadCloud, Eye, Image as ImageIcon, Play, File, Shield, AlertTriangle, Clock, History } from 'lucide-react';
 import ResourceViewer from '../components/ResourceViewer';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +22,9 @@ const StudentDashboard = () => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [annTab, setAnnTab] = useState('active'); // 'active' or 'history'
   const [evtTab, setEvtTab] = useState('active'); // 'active' or 'history'
+  const [adminMessages, setAdminMessages] = useState([]);
+  const [adminMsgHistory, setAdminMsgHistory] = useState([]);
+  const [adminMsgTab, setAdminMsgTab] = useState('active');
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -48,6 +51,15 @@ const StudentDashboard = () => {
            const ttRes = await api.get(`/academic/timetable?dept=${dashData.user.department}&year=${dashData.user.year}`);
            setTimetable(ttRes.data);
         }
+
+        // Fetch admin messages (separate module)
+        try {
+          const deptParam = dashData?.user?.department ? `?department=${dashData.user.department}` : '';
+          const adminMsgRes = await api.get(`/admin/messages${deptParam}`);
+          setAdminMessages(adminMsgRes.data);
+          const adminHistRes = await api.get(`/admin/messages/history${deptParam}`);
+          setAdminMsgHistory(adminHistRes.data);
+        } catch (e) { console.log('Admin messages not available'); }
       } catch (err) {
         setError('Failed to load student dashboard data.');
       } finally {
@@ -216,6 +228,65 @@ const StudentDashboard = () => {
         </div>
       </div>
 
+      {/* Admin Messages — Separate Module */}
+      {(adminMessages.length > 0 || adminMsgHistory.length > 0) && (
+        <div className="card p-6 border-t-4 border-amber-500">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center">
+              <Shield className="h-5 w-5 mr-2 text-amber-500" /> Admin Notices
+            </h3>
+            <div className="flex bg-slate-100 dark:bg-slate-900/50 rounded-xl p-1 gap-1">
+              <button onClick={() => setAdminMsgTab('active')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${adminMsgTab === 'active' ? 'bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}>
+                <Shield size={12} className="inline mr-1" />Active
+              </button>
+              <button onClick={() => setAdminMsgTab('history')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${adminMsgTab === 'history' ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}>
+                <History size={12} className="inline mr-1" />History
+              </button>
+            </div>
+          </div>
+          <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
+            {(adminMsgTab === 'active' ? adminMessages : adminMsgHistory).length === 0 ? (
+              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-8">
+                {adminMsgTab === 'active' ? 'No active admin notices' : 'No expired notices'}
+              </p>
+            ) : (
+              (adminMsgTab === 'active' ? adminMessages : adminMsgHistory).map(msg => (
+                <div key={msg.id} className={`p-4 rounded-2xl border transition-all ${
+                  adminMsgTab === 'history' 
+                    ? 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 opacity-70'
+                    : msg.is_priority 
+                      ? 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-900/20 shadow-md' 
+                      : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800/40'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    {msg.is_priority && adminMsgTab === 'active' && (
+                      <div className="mt-0.5"><AlertTriangle className="h-5 w-5 text-red-500 animate-pulse" /></div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h4 className={`font-bold text-sm ${adminMsgTab === 'history' ? 'text-slate-500 dark:text-slate-400' : msg.is_priority ? 'text-red-700 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'}`}>
+                          {msg.title}
+                        </h4>
+                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Admin Notice</span>
+                        {msg.is_priority && <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">Priority</span>}
+                        {adminMsgTab === 'history' && <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Expired</span>}
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap">{msg.message}</p>
+                      <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+                        <span>🎯 {msg.target_role === 'all' ? 'Everyone' : msg.target_role}</span>
+                        {msg.department && <span>📍 {msg.department}</span>}
+                        <span>{new Date(msg.created_at).toLocaleDateString()}</span>
+                        {msg.expires_at && <span className="flex items-center gap-0.5"><Clock size={10} /> {new Date(msg.expires_at).toLocaleDateString()}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Timetable */}
       <div className="card p-6">
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center mb-6">
@@ -327,6 +398,9 @@ const StaffDashboard = () => {
   const [resSubject, setResSubject] = useState('');
   const [resFile, setResFile] = useState(null);
   const [statusMsg, setStatusMsg] = useState({ text: '', type: '' });
+  const [adminMessages, setAdminMessages] = useState([]);
+  const [adminMsgHistory, setAdminMsgHistory] = useState([]);
+  const [adminMsgTab, setAdminMsgTab] = useState('active');
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -340,6 +414,11 @@ const StaffDashboard = () => {
       }
     };
     fetchDashboard();
+
+    // Fetch admin messages for staff (separate module)
+    const deptParam = authUser?.department ? `?department=${authUser.department}` : '';
+    api.get(`/admin/messages${deptParam}`).then(res => setAdminMessages(res.data)).catch(() => {});
+    api.get(`/admin/messages/history${deptParam}`).then(res => setAdminMsgHistory(res.data)).catch(() => {});
   }, [authUser?.department]);
 
   const handlePostAnnouncement = async (e) => {
@@ -387,6 +466,61 @@ const StaffDashboard = () => {
        {statusMsg.text && (
          <div className={`p-4 rounded-lg font-medium text-sm ${statusMsg.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'}`}>
            {statusMsg.text}
+         </div>
+       )}
+
+       {/* Admin Messages — Separate Module */}
+       {(adminMessages.length > 0 || adminMsgHistory.length > 0) && (
+         <div className="card p-6 border-t-4 border-amber-500">
+           <div className="flex items-center justify-between mb-4">
+             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center">
+               <Shield className="h-5 w-5 mr-2 text-amber-500" /> Admin Notices
+             </h3>
+             <div className="flex bg-slate-100 dark:bg-slate-900/50 rounded-xl p-1 gap-1">
+               <button onClick={() => setAdminMsgTab('active')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${adminMsgTab === 'active' ? 'bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>
+                 <Shield size={12} className="inline mr-1" />Active
+               </button>
+               <button onClick={() => setAdminMsgTab('history')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${adminMsgTab === 'history' ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>
+                 <History size={12} className="inline mr-1" />History
+               </button>
+             </div>
+           </div>
+           <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin">
+             {(adminMsgTab === 'active' ? adminMessages : adminMsgHistory).length === 0 ? (
+               <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-8">
+                 {adminMsgTab === 'active' ? 'No active admin notices' : 'No expired notices'}
+               </p>
+             ) : (
+               (adminMsgTab === 'active' ? adminMessages : adminMsgHistory).map(msg => (
+                 <div key={msg.id} className={`p-4 rounded-2xl border transition-all ${
+                   adminMsgTab === 'history'
+                     ? 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 opacity-70'
+                     : msg.is_priority
+                       ? 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-900/20 shadow-md'
+                       : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800/40'
+                 }`}>
+                   <div className="flex items-start gap-3">
+                     {msg.is_priority && adminMsgTab === 'active' && <AlertTriangle className="h-5 w-5 text-red-500 animate-pulse mt-0.5" />}
+                     <div className="flex-1">
+                       <div className="flex items-center gap-2 mb-1 flex-wrap">
+                         <h4 className={`font-bold text-sm ${adminMsgTab === 'history' ? 'text-slate-500 dark:text-slate-400' : msg.is_priority ? 'text-red-700 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'}`}>
+                           {msg.title}
+                         </h4>
+                         <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Admin Notice</span>
+                         {msg.is_priority && <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">Priority</span>}
+                         {adminMsgTab === 'history' && <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Expired</span>}
+                       </div>
+                       <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap">{msg.message}</p>
+                       <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+                         <span>{new Date(msg.created_at).toLocaleDateString()}</span>
+                         {msg.expires_at && <span className="flex items-center gap-0.5"><Clock size={10} /> {new Date(msg.expires_at).toLocaleDateString()}</span>}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               ))
+             )}
+           </div>
          </div>
        )}
 
@@ -448,6 +582,48 @@ const AdminDashboard = () => {
   const [annDesc, setAnnDesc] = useState('');
   const [statusMsg, setStatusMsg] = useState({ text: '', type: '' });
 
+  // Admin Messages State
+  const [adminMsgTitle, setAdminMsgTitle] = useState('');
+  const [adminMsgBody, setAdminMsgBody] = useState('');
+  const [adminMsgRole, setAdminMsgRole] = useState('all');
+  const [adminMsgDept, setAdminMsgDept] = useState('');
+  const [adminMsgPriority, setAdminMsgPriority] = useState(false);
+  const [adminMsgExpiry, setAdminMsgExpiry] = useState('none');
+  const [adminMsgCustomDate, setAdminMsgCustomDate] = useState('');
+  const [isSendingAdminMsg, setIsSendingAdminMsg] = useState(false);
+
+  const getExpiresAt = () => {
+    if (adminMsgPriority || adminMsgExpiry === 'none') return null;
+    if (adminMsgExpiry === '24h') {
+      const d = new Date(); d.setHours(d.getHours() + 24); return d.toISOString();
+    }
+    if (adminMsgExpiry === 'custom' && adminMsgCustomDate) {
+      return new Date(adminMsgCustomDate).toISOString();
+    }
+    return null;
+  };
+
+  const handleSendAdminMessage = async (e) => {
+    e.preventDefault();
+    setIsSendingAdminMsg(true);
+    try {
+      await api.post('/admin/messages', {
+        title: adminMsgTitle,
+        message: adminMsgBody,
+        target_role: adminMsgRole,
+        department: adminMsgDept || null,
+        is_priority: adminMsgPriority,
+        expires_at: getExpiresAt()
+      });
+      setStatusMsg({ text: 'Admin message broadcast successfully!', type: 'success' });
+      setAdminMsgTitle(''); setAdminMsgBody(''); setAdminMsgDept(''); setAdminMsgPriority(false); setAdminMsgExpiry('none'); setAdminMsgCustomDate('');
+    } catch {
+      setStatusMsg({ text: 'Failed to send admin message.', type: 'error' });
+    } finally {
+      setIsSendingAdminMsg(false);
+    }
+  };
+
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     try {
@@ -479,6 +655,92 @@ const AdminDashboard = () => {
            {statusMsg.text}
          </div>
       )}
+
+      {/* Admin Broadcast Message — Separate Module */}
+      <div className="card p-6 border-t-4 border-amber-500">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center mb-4">
+          <Shield className="h-5 w-5 mr-2 text-amber-500" /> Broadcast Admin Message
+        </h3>
+        <form onSubmit={handleSendAdminMessage} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title</label>
+            <input type="text" required value={adminMsgTitle} onChange={e => setAdminMsgTitle(e.target.value)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring focus:ring-amber-200 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" placeholder="E.g., Exam Schedule Update" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Message</label>
+            <textarea required value={adminMsgBody} onChange={e => setAdminMsgBody(e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring focus:ring-amber-200 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" placeholder="Detailed message..."></textarea>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Audience</label>
+              <select value={adminMsgRole} onChange={e => setAdminMsgRole(e.target.value)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                <option value="all" className="dark:bg-slate-800">All Users</option>
+                <option value="student" className="dark:bg-slate-800">Students Only</option>
+                <option value="staff" className="dark:bg-slate-800">Staff Only</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department (optional)</label>
+              <input type="text" value={adminMsgDept} onChange={e => setAdminMsgDept(e.target.value)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" placeholder="E.g., CSE" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Message Expiry</label>
+            <select value={adminMsgExpiry} onChange={e => setAdminMsgExpiry(e.target.value)} disabled={adminMsgPriority} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 disabled:opacity-50">
+              <option value="none" className="dark:bg-slate-800">No Expiry (Permanent)</option>
+              <option value="24h" className="dark:bg-slate-800">24 Hours</option>
+              <option value="custom" className="dark:bg-slate-800">Custom Date</option>
+            </select>
+            {adminMsgExpiry === 'custom' && !adminMsgPriority && (
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-wider">📅 Expiry Date</label>
+                  <input 
+                    type="date" 
+                    value={adminMsgCustomDate.split('T')[0] || ''} 
+                    onChange={e => {
+                      const time = adminMsgCustomDate.split('T')[1] || '23:59';
+                      setAdminMsgCustomDate(e.target.value + 'T' + time);
+                    }}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 cursor-pointer [color-scheme:dark]" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-wider">🕐 Expiry Time</label>
+                  <input 
+                    type="time" 
+                    value={adminMsgCustomDate.split('T')[1] || '23:59'} 
+                    onChange={e => {
+                      const date = adminMsgCustomDate.split('T')[0] || new Date().toISOString().split('T')[0];
+                      setAdminMsgCustomDate(date + 'T' + e.target.value);
+                    }}
+                    className="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 cursor-pointer [color-scheme:dark]" 
+                  />
+                </div>
+              </div>
+            )}
+            {adminMsgPriority && <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 font-medium">Priority messages ignore expiry and stay active permanently.</p>}
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setAdminMsgPriority(!adminMsgPriority)}
+              className={`w-12 h-6 rounded-full transition-all relative ${adminMsgPriority ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${adminMsgPriority ? 'right-1' : 'left-1'}`} />
+            </button>
+            <div>
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Mark as Priority</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">Priority messages are pinned at top and never expire</p>
+            </div>
+          </div>
+          <button type="submit" disabled={isSendingAdminMsg} className="w-full bg-amber-600 text-white font-medium py-2.5 rounded-lg hover:bg-amber-700 transition disabled:opacity-50 flex items-center justify-center gap-2">
+            {isSendingAdminMsg ? <Loader2 className="animate-spin" size={18} /> : <Shield size={18} />}
+            {isSendingAdminMsg ? 'Broadcasting...' : 'Broadcast Message'}
+          </button>
+        </form>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
          {/* Manage Announcements Form */}
