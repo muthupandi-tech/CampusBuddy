@@ -8,6 +8,8 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Messages from './pages/Messages';
 import Analytics from './pages/Analytics';
+import Classrooms from './pages/Classrooms';
+import ClassroomDetail from './pages/ClassroomDetail';
 
 // A simple protective wrapper for routes
 const ProtectedRoute = ({ children }) => {
@@ -93,6 +95,18 @@ function App() {
         <Route path="/analytics" element={
           <ProtectedRoute>
             <Analytics />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/classrooms" element={
+          <ProtectedRoute>
+            <Classrooms />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/classrooms/:id" element={
+          <ProtectedRoute>
+            <ClassroomDetail />
           </ProtectedRoute>
         } />
       </Routes>

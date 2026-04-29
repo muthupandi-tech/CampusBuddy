@@ -7,7 +7,8 @@ import {
   LogOut, 
   User, 
   Settings,
-  BarChart3
+  BarChart3,
+  Library
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import Chatbot from '../components/Chatbot';
@@ -20,6 +21,7 @@ const DashboardLayout = ({ children }) => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Analytics', path: '/analytics', icon: BarChart3 },
+    { name: 'Classrooms', path: '/classrooms', icon: Library },
     { name: 'Messages', path: '/messages', icon: MessageSquare },
   ];
 

@@ -19,6 +19,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 const fileUpload = require('express-fileupload');
@@ -39,6 +40,7 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/chatbot', require('./routes/chatbotRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/classrooms', require('./routes/classroomRoutes'));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res, path) => {
@@ -102,6 +104,43 @@ io.on('connection', (socket) => {
       console.error('Error saving message via socket:', error);
     }
   });
+
+  // --- Classroom Socket Events ---
+  socket.on('join_classroom', (classroomId) => {
+    socket.join(`classroom_${classroomId}`);
+    console.log(`Socket ${socket.id} joined classroom_${classroomId}`);
+  });
+
+  socket.on('leave_classroom', (classroomId) => {
+    socket.leave(`classroom_${classroomId}`);
+    console.log(`Socket ${socket.id} left classroom_${classroomId}`);
+  });
+
+  socket.on('classroom_message', async (data) => {
+    const { classroom_id, sender_id, message } = data;
+    try {
+      // Save it to database
+      const newMsg = await db.query(
+        `INSERT INTO classroom_messages (classroom_id, sender_id, message) 
+         VALUES ($1, $2, $3) RETURNING *`,
+        [classroom_id, sender_id, message]
+      );
+      
+      const senderData = await db.query('SELECT name, avatar_url FROM users WHERE id = $1', [sender_id]);
+      
+      const messageData = {
+        ...newMsg.rows[0],
+        sender_name: senderData.rows[0]?.name,
+        avatar_url: senderData.rows[0]?.avatar_url
+      };
+
+      // Broadcast to all users in this classroom room
+      io.to(`classroom_${classroom_id}`).emit('receive_classroom_message', messageData);
+    } catch (error) {
+      console.error('Error saving classroom message via socket:', error);
+    }
+  });
+  // -------------------------------
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
