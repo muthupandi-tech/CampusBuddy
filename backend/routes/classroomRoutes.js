@@ -10,6 +10,8 @@ router.get('/', auth, classroomController.getClassrooms);
 router.get('/students', auth, classroomController.getStudents);
 
 router.get('/:id', auth, classroomController.getClassroomDetails);
+router.put('/:id', auth, classroomController.updateClassroom);
+router.delete('/:id', auth, classroomController.deleteClassroom);
 
 // Members
 router.get('/:id/members', auth, classroomController.getMembers);

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Link } from 'react-router-dom';
 import { 
   BookOpen, Plus, Search, Users, 
   ChevronRight, Library, MoreVertical, X,
-  GraduationCap
+  GraduationCap, ArrowLeft
 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Classrooms = () => {
   const { user } = useContext(AuthContext);
@@ -16,6 +16,7 @@ const Classrooms = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', subject: '', department: '', year: '' });
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const fetchClassrooms = async () => {
     try {
@@ -62,7 +63,14 @@ const Classrooms = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"
+              title="Go back"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
             <Library className="w-6 h-6 text-brand-500" />
             Classrooms
           </h1>

@@ -6,10 +6,11 @@ import { socket } from '../services/socket';
 import { 
   FileText, MessageSquare, Users, 
   ArrowLeft, Upload, Check, X,
-  Trash2, ShieldAlert, FileIcon, Send, Plus, Ban, Star
+  Trash2, ShieldAlert, FileIcon, Send, Plus, Ban, Star, Home, Settings
 } from 'lucide-react';
 import AddStudentModal from '../components/AddStudentModal';
 import DirectMessageModal from '../components/DirectMessageModal';
+import EditClassroomModal from '../components/EditClassroomModal';
 
 const ClassroomDetail = () => {
   const { id } = useParams();
@@ -38,6 +39,7 @@ const ClassroomDetail = () => {
   const [dmReceiver, setDmReceiver] = useState(null);
   const [classroomBlocks, setClassroomBlocks] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     fetchClassroom();
@@ -242,16 +244,37 @@ const ClassroomDetail = () => {
       
       {/* Header */}
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 dark:text-slate-400"
+            title="Go to Home"
+          >
+            <Home className="w-5 h-5" />
+          </button>
           <button 
             onClick={() => navigate('/classrooms')}
             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 dark:text-slate-400"
+            title="Back to Classrooms"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white line-clamp-1">{classroom.name}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{classroom.subject} &bull; Instructor: {classroom.staff_name}</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white line-clamp-1">{classroom.name}</h1>
+                {(classroom.staff_id === user.id || user.role === 'admin') && (
+                  <button 
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-brand-600 transition-colors"
+                    title="Edit Classroom Details"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{classroom.subject} &bull; Instructor: {classroom.staff_name}</p>
+            </div>
           </div>
         </div>
         
@@ -565,6 +588,17 @@ const ClassroomDetail = () => {
         receiver={dmReceiver}
         myUser={user}
         classroomId={id}
+      />
+      <EditClassroomModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        classroom={classroom}
+        onUpdate={(updated) => {
+          setClassroom(prev => ({ ...prev, ...updated }));
+        }}
+        onDelete={() => {
+          navigate('/classrooms');
+        }}
       />
     </div>
   );

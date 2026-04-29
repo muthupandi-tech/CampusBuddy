@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const { createNotification } = require('./notificationController');
 const transporter = require('../config/mailer');
+const bcrypt = require('bcrypt');
 
 // 1. Create Classroom (Staff only)
 exports.createClassroom = async (req, res) => {
@@ -430,5 +431,81 @@ exports.addStudentDirectly = async (req, res) => {
   } catch (error) {
     console.error('Error adding student directly:', error);
     res.status(500).json({ error: 'Server error adding student' });
+  }
+};
+
+// 12. Update Classroom (Staff only)
+exports.updateClassroom = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, subject, department, year } = req.body || {};
+    const userId = req.user.id;
+
+    // Verify ownership
+    const classCheck = await db.query('SELECT staff_id FROM classrooms WHERE id = $1', [id]);
+    if (classCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Classroom not found' });
+    }
+
+    if (classCheck.rows[0].staff_id !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized to update this classroom' });
+    }
+
+    const updated = await db.query(
+      `UPDATE classrooms 
+       SET name = $1, subject = $2, department = $3, year = $4
+       WHERE id = $5 RETURNING *`,
+      [name, subject, department, year, id]
+    );
+
+    res.json(updated.rows[0]);
+  } catch (error) {
+    console.error('Error updating classroom:', error);
+    res.status(500).json({ error: 'Server error updating classroom' });
+  }
+};
+
+// 13. Delete Classroom (Staff only, requires password)
+exports.deleteClassroom = async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const { id } = req.params;
+    const { password } = req.body || {};
+    const userId = req.user.id;
+
+    // 1. Verify Classroom & Ownership
+    const classCheck = await db.query('SELECT staff_id FROM classrooms WHERE id = $1', [id]);
+    if (classCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Classroom not found' });
+    }
+
+    if (classCheck.rows[0].staff_id !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized to delete this classroom' });
+    }
+
+    // 2. Verify Password
+    const userRes = await db.query('SELECT password FROM users WHERE id = $1', [userId]);
+    const isMatch = await bcrypt.compare(password, userRes.rows[0].password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Incorrect password. Deletion unauthorized.' });
+    }
+
+    // 3. Delete Everything (Transaction)
+    await client.query('BEGIN');
+    
+    await client.query('DELETE FROM classroom_members WHERE classroom_id = $1', [id]);
+    await client.query('DELETE FROM classroom_messages WHERE classroom_id = $1', [id]);
+    await client.query('DELETE FROM classroom_resources WHERE classroom_id = $1', [id]);
+    await client.query('DELETE FROM classroom_blocks WHERE classroom_id = $1', [id]);
+    await client.query('DELETE FROM classrooms WHERE id = $1', [id]);
+    
+    await client.query('COMMIT');
+    res.json({ message: 'Classroom deleted successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error deleting classroom:', error);
+    res.status(500).json({ error: 'Server error deleting classroom' });
+  } finally {
+    client.release();
   }
 };
