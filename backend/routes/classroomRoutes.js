@@ -5,6 +5,10 @@ const classroomController = require('../controllers/classroomController');
 
 router.post('/', auth, classroomController.createClassroom);
 router.get('/', auth, classroomController.getClassrooms);
+
+// Global routes (Must be above /:id)
+router.get('/students', auth, classroomController.getStudents);
+
 router.get('/:id', auth, classroomController.getClassroomDetails);
 
 // Members
@@ -23,5 +27,7 @@ router.get('/:id/messages', auth, classroomController.getMessages);
 // Block
 router.post('/block', auth, classroomController.toggleBlockUser);
 router.get('/block/list', auth, classroomController.getBlockedUsers);
+
+router.post('/:id/add-student', auth, classroomController.addStudentDirectly);
 
 module.exports = router;

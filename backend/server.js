@@ -41,6 +41,8 @@ app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/chatbot', require('./routes/chatbotRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/classrooms', require('./routes/classroomRoutes'));
+app.use('/api/students', require('./routes/classroomRoutes'));
+app.use('/api/dm', require('./routes/dmRoutes')); // For direct student listing API
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res, path) => {
@@ -119,6 +121,15 @@ io.on('connection', (socket) => {
   socket.on('classroom_message', async (data) => {
     const { classroom_id, sender_id, message } = data;
     try {
+      // BLOCK CHECK: Is sender blocked by staff in this classroom?
+      const blockCheck = await db.query(
+        'SELECT id FROM classroom_blocks WHERE classroom_id = $1 AND blocked_user_id = $2',
+        [classroom_id, sender_id]
+      );
+      if (blockCheck.rows.length > 0) {
+        return socket.emit('error', 'You are restricted from messaging by staff');
+      }
+
       // Save it to database
       const newMsg = await db.query(
         `INSERT INTO classroom_messages (classroom_id, sender_id, message) 
@@ -137,7 +148,34 @@ io.on('connection', (socket) => {
       // Broadcast to all users in this classroom room
       io.to(`classroom_${classroom_id}`).emit('receive_classroom_message', messageData);
     } catch (error) {
-      console.error('Error saving classroom message via socket:', error);
+      console.error('Error saving classroom message:', error);
+    }
+  });
+
+  socket.on('dm_send', async (data) => {
+    const { sender_id, receiver_id, message, file_url } = data;
+    try {
+      const senderData = await db.query('SELECT name, avatar_url FROM users WHERE id = $1', [sender_id]);
+      const messageData = {
+        sender_id,
+        receiver_id,
+        message,
+        file_url,
+        sender_name: senderData.rows[0]?.name,
+        avatar_url: senderData.rows[0]?.avatar_url,
+        created_at: new Date()
+      };
+
+      // Emit to receiver
+      const receiverSocketId = connectedUsers.get(receiver_id);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('dm_receive', messageData);
+      }
+      
+      // Also emit back to sender to confirm (or UI handles it)
+      socket.emit('dm_receive', messageData);
+    } catch (err) {
+      console.error('DM socket error:', err);
     }
   });
   // -------------------------------

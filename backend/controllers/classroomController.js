@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { createNotification } = require('./notificationController');
+const transporter = require('../config/mailer');
 
 // 1. Create Classroom (Staff only)
 exports.createClassroom = async (req, res) => {
@@ -334,3 +335,99 @@ exports.getBlockedUsers = async (req, res) => {
       res.status(500).json({ error: 'Server error fetching blocked users' });
    }
 }
+
+// 13. Get All Students (for staff selection)
+exports.getStudents = async (req, res) => {
+  try {
+    const { search, department, year } = req.query;
+    let query = "SELECT id, name, email, department, year, avatar_url FROM users WHERE role = 'student'";
+    let params = [];
+    let count = 1;
+
+    if (search) {
+      query += ` AND (name ILIKE $${count} OR email ILIKE $${count})`;
+      params.push(`%${search}%`);
+      count++;
+    }
+
+    if (department) {
+      query += ` AND department = $${count}`;
+      params.push(department);
+      count++;
+    }
+
+    if (year) {
+      query += ` AND year = $${count}`;
+      params.push(year);
+      count++;
+    }
+
+    query += " ORDER BY name ASC";
+    const result = await db.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    res.status(500).json({ error: 'Server error fetching students' });
+  }
+};
+
+// 14. Add Student Directly (Staff action)
+exports.addStudentDirectly = async (req, res) => {
+  try {
+    const { id } = req.params; // classroom id
+    const { userId } = req.body || {};
+    const staffId = req.user.id;
+
+    // Verify staff
+    const classCheck = await db.query('SELECT staff_id, name FROM classrooms WHERE id = $1', [id]);
+    if (classCheck.rows.length === 0 || classCheck.rows[0].staff_id !== staffId) {
+      return res.status(403).json({ error: 'Only classroom staff can add students' });
+    }
+
+    // Check if already member
+    const existing = await db.query(
+      'SELECT * FROM classroom_members WHERE classroom_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Student is already a member' });
+    }
+
+    // Add student
+    await db.query(
+      'INSERT INTO classroom_members (classroom_id, user_id, role, status) VALUES ($1, $2, $3, $4)',
+      [id, userId, 'student', 'approved']
+    );
+
+    // Get student info for email
+    const studentQuery = await db.query('SELECT name, email FROM users WHERE id = $1', [userId]);
+    const student = studentQuery.rows[0];
+
+    // Send email
+    if (student && student.email) {
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: student.email,
+        subject: 'Added to Classroom',
+        text: `Hello ${student.name},\n\nYou have been added to the classroom: ${classCheck.rows[0].name}.\n\nLog in to CampusBuddy to view your resources and chat with classmates.`
+      };
+      
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Email error:', error);
+        } else {
+          console.log('Email sent: ' + info.response);
+        }
+      });
+    }
+
+    // Also create in-app notification
+    await createNotification(userId, `You have been added to the classroom: ${classCheck.rows[0].name}`, 'classroom');
+
+    res.json({ message: 'Student added successfully' });
+  } catch (error) {
+    console.error('Error adding student directly:', error);
+    res.status(500).json({ error: 'Server error adding student' });
+  }
+};

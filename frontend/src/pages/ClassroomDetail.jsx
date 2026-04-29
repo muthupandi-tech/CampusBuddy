@@ -6,8 +6,10 @@ import { socket } from '../services/socket';
 import { 
   FileText, MessageSquare, Users, 
   ArrowLeft, Upload, Check, X,
-  Trash2, ShieldAlert, FileIcon, Send
+  Trash2, ShieldAlert, FileIcon, Send, Plus, Ban
 } from 'lucide-react';
+import AddStudentModal from '../components/AddStudentModal';
+import DirectMessageModal from '../components/DirectMessageModal';
 
 const ClassroomDetail = () => {
   const { id } = useParams();
@@ -32,10 +34,14 @@ const ClassroomDetail = () => {
 
   // Members state
   const [members, setMembers] = useState([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [dmReceiver, setDmReceiver] = useState(null);
+  const [classroomBlocks, setClassroomBlocks] = useState([]);
 
   useEffect(() => {
     fetchClassroom();
     fetchBlockedUsers();
+    fetchClassroomBlocks();
   }, [id]);
 
   useEffect(() => {
@@ -196,6 +202,24 @@ const ClassroomDetail = () => {
       if (activeTab === 'chat') fetchMessages();
     } catch (err) {
       alert('Block action failed');
+    }
+  };
+
+  const fetchClassroomBlocks = async () => {
+    try {
+      const res = await api.get(`/dm/blocks/${id}`);
+      setClassroomBlocks(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleClassroomBlock = async (studentId) => {
+    try {
+      await api.post('/dm/block-group', { classroomId: id, studentId });
+      fetchClassroomBlocks();
+    } catch (err) {
+      alert('Failed to toggle classroom block');
     }
   };
 
@@ -374,12 +398,13 @@ const ClassroomDetail = () => {
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message to the classroom..."
-                    className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                    placeholder={classroomBlocks.includes(user.id) ? "You are restricted from messaging by staff" : "Type a message to the classroom..."}
+                    disabled={classroomBlocks.includes(user.id)}
+                    className={`flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white ${classroomBlocks.includes(user.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                   />
                   <button 
                     type="submit"
-                    disabled={!newMessage.trim()}
+                    disabled={!newMessage.trim() || classroomBlocks.includes(user.id)}
                     className="p-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-full transition-colors shadow-sm shadow-brand-500/20 flex-shrink-0"
                   >
                     <Send className="w-5 h-5" />
@@ -417,10 +442,18 @@ const ClassroomDetail = () => {
                 )}
 
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
-                  <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                  <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
                     <h3 className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
                       <Users className="w-5 h-5 text-brand-500" /> Class Roster
                     </h3>
+                    {classroom.isStaff && (
+                      <button 
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm shadow-brand-500/20 active:scale-95"
+                      >
+                        <Plus className="w-4 h-4" /> Add Students
+                      </button>
+                    )}
                   </div>
                   <ul className="divide-y divide-slate-100 dark:divide-slate-700">
                     {members.filter(m => m.status === 'approved').map(m => (
@@ -440,15 +473,33 @@ const ClassroomDetail = () => {
                         
                         {m.id !== user.id && (
                           <div className="flex items-center gap-2">
+                            {/* Message button */}
+                            <button 
+                              onClick={() => setDmReceiver(m)}
+                              className="p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors"
+                              title="Direct message"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </button>
+
                             {/* Staff actions */}
                             {classroom.isStaff && m.role !== 'staff' && (
-                              <button 
-                                onClick={() => removeMember(m.id)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                                title="Remove student"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <>
+                                <button 
+                                  onClick={() => toggleClassroomBlock(m.id)}
+                                  className={`p-2 rounded-lg transition-colors ${classroomBlocks.includes(m.id) ? 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}`}
+                                  title={classroomBlocks.includes(m.id) ? "Unblock from group chat" : "Restrict from group chat"}
+                                >
+                                  <Ban className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => removeMember(m.id)}
+                                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                  title="Remove student"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
                             )}
                             
                             {/* Block action */}
@@ -477,6 +528,22 @@ const ClassroomDetail = () => {
         )}
       </div>
 
+      <AddStudentModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        classroomId={id}
+        existingMemberIds={members.map(m => m.id)}
+        onStudentAdded={() => {
+          fetchMembers();
+        }}
+      />
+      <DirectMessageModal 
+        isOpen={!!dmReceiver}
+        onClose={() => setDmReceiver(null)}
+        receiver={dmReceiver}
+        myUser={user}
+        classroomId={id}
+      />
     </div>
   );
 };
