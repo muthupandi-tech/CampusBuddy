@@ -126,3 +126,42 @@ exports.getClassroomBlocks = async (req, res) => {
     res.status(500).json({ error: 'Server error fetching blocks' });
   }
 };
+
+// 5. Mark messages as read
+exports.markAsRead = async (req, res) => {
+  try {
+    const { senderId } = req.params;
+    const myId = req.user.id;
+    
+    await db.query(
+      'UPDATE direct_messages SET is_read = TRUE WHERE sender_id = $1 AND receiver_id = $2 AND is_read = FALSE',
+      [senderId, myId]
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// 6. Get unread counts for all users
+exports.getUnreadCounts = async (req, res) => {
+  try {
+    const myId = req.user.id;
+    const counts = await db.query(
+      'SELECT sender_id, COUNT(*) as count FROM direct_messages WHERE receiver_id = $1 AND is_read = FALSE GROUP BY sender_id',
+      [myId]
+    );
+    
+    const countMap = {};
+    counts.rows.forEach(r => {
+      countMap[r.sender_id] = parseInt(r.count);
+    });
+    
+    res.json(countMap);
+  } catch (error) {
+    console.error('Error fetching unread counts:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};

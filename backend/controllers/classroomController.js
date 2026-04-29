@@ -282,9 +282,10 @@ exports.getMessages = async (req, res) => {
     const blockedIds = blockedCheck.rows.map(row => row.blocked_user_id);
 
     const messages = await db.query(
-      `SELECT m.*, u.name as sender_name, u.avatar_url 
+      `SELECT m.*, u.name as sender_name, u.avatar_url, cm.role 
        FROM classroom_messages m
        JOIN users u ON m.sender_id = u.id
+       LEFT JOIN classroom_members cm ON m.sender_id = cm.user_id AND m.classroom_id = cm.classroom_id
        WHERE m.classroom_id = $1
        ORDER BY m.created_at ASC`,
       [id]

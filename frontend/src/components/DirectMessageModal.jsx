@@ -40,8 +40,19 @@ const DirectMessageModal = ({ isOpen, onClose, receiver, myUser, classroomId }) 
       if ((msg.sender_id === receiver.id && msg.receiver_id === myUser.id) ||
           (msg.sender_id === myUser.id && msg.receiver_id === receiver.id)) {
         setMessages(prev => [...prev, msg]);
+        if (msg.sender_id === receiver.id) {
+          markAsRead();
+        }
       }
     });
+  };
+
+  const markAsRead = async () => {
+    try {
+      await api.post(`/dm/mark-read/${receiver.id}`);
+    } catch (err) {
+      console.error('Failed to mark as read', err);
+    }
   };
 
   const fetchHistory = async () => {
@@ -50,6 +61,7 @@ const DirectMessageModal = ({ isOpen, onClose, receiver, myUser, classroomId }) 
       setError(null);
       const res = await api.get(`/dm/history/${receiver.id}`);
       setMessages(res.data);
+      markAsRead();
     } catch (err) {
       console.error(err);
       setError('Failed to load chat history');

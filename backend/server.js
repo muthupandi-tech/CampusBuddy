@@ -137,12 +137,19 @@ io.on('connection', (socket) => {
         [classroom_id, sender_id, message]
       );
       
-      const senderData = await db.query('SELECT name, avatar_url FROM users WHERE id = $1', [sender_id]);
+      const senderData = await db.query(
+        `SELECT u.name, u.avatar_url, cm.role 
+         FROM users u 
+         LEFT JOIN classroom_members cm ON u.id = cm.user_id AND cm.classroom_id = $2 
+         WHERE u.id = $1`, 
+        [sender_id, classroom_id]
+      );
       
       const messageData = {
         ...newMsg.rows[0],
         sender_name: senderData.rows[0]?.name,
-        avatar_url: senderData.rows[0]?.avatar_url
+        avatar_url: senderData.rows[0]?.avatar_url,
+        role: senderData.rows[0]?.role
       };
 
       // Broadcast to all users in this classroom room

@@ -6,7 +6,7 @@ import { socket } from '../services/socket';
 import { 
   FileText, MessageSquare, Users, 
   ArrowLeft, Upload, Check, X,
-  Trash2, ShieldAlert, FileIcon, Send, Plus, Ban
+  Trash2, ShieldAlert, FileIcon, Send, Plus, Ban, Star
 } from 'lucide-react';
 import AddStudentModal from '../components/AddStudentModal';
 import DirectMessageModal from '../components/DirectMessageModal';
@@ -37,11 +37,13 @@ const ClassroomDetail = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [dmReceiver, setDmReceiver] = useState(null);
   const [classroomBlocks, setClassroomBlocks] = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({});
 
   useEffect(() => {
     fetchClassroom();
     fetchBlockedUsers();
     fetchClassroomBlocks();
+    fetchUnreadCounts();
   }, [id]);
 
   useEffect(() => {
@@ -223,6 +225,15 @@ const ClassroomDetail = () => {
     }
   };
 
+  const fetchUnreadCounts = async () => {
+    try {
+      const res = await api.get('/dm/unread-counts');
+      setUnreadCounts(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (!classroom) return <div className="p-8 text-center">Classroom not found</div>;
 
@@ -373,7 +384,12 @@ const ClassroomDetail = () => {
                             
                             <div className="flex flex-col">
                               {!isMe && showAvatar && (
-                                <span className="text-xs text-slate-500 dark:text-slate-400 ml-1 mb-1">{msg.sender_name}</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400 ml-1 mb-1 flex items-center gap-1">
+                                  {msg.sender_name}
+                                  {(msg.role === 'staff' || msg.role === 'admin') && (
+                                    <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                  )}
+                                </span>
                               )}
                               <div 
                                 className={`px-4 py-2 rounded-2xl ${
@@ -475,11 +491,17 @@ const ClassroomDetail = () => {
                           <div className="flex items-center gap-2">
                             {/* Message button */}
                             <button 
-                              onClick={() => setDmReceiver(m)}
-                              className="p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors"
+                              onClick={() => {
+                                setDmReceiver(m);
+                                setUnreadCounts(prev => ({ ...prev, [m.id]: 0 }));
+                              }}
+                              className="p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors relative"
                               title="Direct message"
                             >
                               <MessageSquare className="w-4 h-4" />
+                              {unreadCounts[m.id] > 0 && (
+                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800 animate-pulse"></span>
+                              )}
                             </button>
 
                             {/* Staff actions */}
