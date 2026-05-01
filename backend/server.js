@@ -5,6 +5,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const db = require('./config/db');
+const { createNotification } = require('./controllers/notificationController');
+
 
 dotenv.config();
 
@@ -43,6 +45,7 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/classrooms', require('./routes/classroomRoutes'));
 app.use('/api/students', require('./routes/classroomRoutes'));
 app.use('/api/dm', require('./routes/dmRoutes')); // For direct student listing API
+app.use('/api/myclass', require('./routes/myClassRoutes'));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res, path) => {
@@ -98,10 +101,15 @@ io.on('connection', (socket) => {
       }
 
       // Create a persistent notification for the receiver
-      const { createNotification } = require('./controllers/notificationController');
       const senderNameQuery = await db.query('SELECT name FROM users WHERE id = $1', [sender_id]);
       const senderName = senderNameQuery.rows[0]?.name || 'Someone';
       await createNotification(receiver_id, `New message from ${senderName}: "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"`, 'message');
+      
+      // Emit to receiver if online (using already defined receiverSocketId)
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('notification_new', { type: 'message' });
+      }
+
     } catch (error) {
       console.error('Error saving message via socket:', error);
     }
@@ -154,6 +162,28 @@ io.on('connection', (socket) => {
 
       // Broadcast to all users in this classroom room
       io.to(`classroom_${classroom_id}`).emit('receive_classroom_message', messageData);
+
+      // NOTIFICATION: Notify all students if staff messages
+      if (messageData.role === 'staff') {
+        const studentsQuery = await db.query(
+          'SELECT user_id FROM classroom_members WHERE classroom_id = $1 AND role = \'student\'',
+          [classroom_id]
+        );
+        
+        for (const student of studentsQuery.rows) {
+          await createNotification(
+            student.user_id,
+            `Faculty ${messageData.sender_name} posted in classroom: "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"`,
+            'classroom'
+          );
+          
+          // Emit socket if online
+          const studentSocketId = connectedUsers.get(student.user_id);
+          if (studentSocketId) {
+            io.to(studentSocketId).emit('notification_new', { type: 'classroom' });
+          }
+        }
+      }
     } catch (error) {
       console.error('Error saving classroom message:', error);
     }
@@ -183,6 +213,57 @@ io.on('connection', (socket) => {
       socket.emit('dm_receive', messageData);
     } catch (err) {
       console.error('DM socket error:', err);
+    }
+  });
+
+  // --- Section Chat Socket Events ---
+  socket.on('join_section', (sectionId) => {
+    socket.join(`section_${sectionId}`);
+    console.log(`Socket ${socket.id} joined section_${sectionId}`);
+  });
+
+  socket.on('section_message', async (data) => {
+    const { section_id, sender_id, message } = data;
+    try {
+      const newMsg = await db.query(
+        `INSERT INTO section_messages (section_id, sender_id, message) 
+         VALUES ($1, $2, $3) RETURNING *`,
+        [section_id, sender_id, message]
+      );
+      
+      const senderData = await db.query('SELECT name, avatar_url, role FROM users WHERE id = $1', [sender_id]);
+      const messageData = {
+        ...newMsg.rows[0],
+        sender_name: senderData.rows[0].name,
+        avatar_url: senderData.rows[0].avatar_url,
+        sender_role: senderData.rows[0].role
+      };
+
+      io.to(`section_${section_id}`).emit('receive_section_message', messageData);
+
+      // NOTIFICATION: Notify all students in the section if staff messages
+      if (messageData.sender_role === 'staff') {
+        const studentsQuery = await db.query(
+          'SELECT id FROM users WHERE section_id = $1 AND role = \'student\'',
+          [section_id]
+        );
+
+        for (const student of studentsQuery.rows) {
+          await createNotification(
+            student.id,
+            `Class teacher ${messageData.sender_name} sent a message to the section: "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"`,
+            'section'
+          );
+
+          // Emit socket if online
+          const studentSocketId = connectedUsers.get(student.id);
+          if (studentSocketId) {
+            io.to(studentSocketId).emit('notification_new', { type: 'section' });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Section message error:', error);
     }
   });
   // -------------------------------

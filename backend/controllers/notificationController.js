@@ -3,12 +3,32 @@ const db = require('../config/db');
 // @route   GET /api/notifications
 const getNotifications = async (req, res) => {
   try {
-    const notifications = await db.query(
-      'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
-      [req.user.id]
-    );
+    // 1. Check if user is currently muted or has notifications OFF
+    const userResult = await db.query('SELECT notifications_enabled, muted_until, notifications_paused_at FROM users WHERE id = $1', [req.user.id]);
+    const { notifications_enabled, muted_until, notifications_paused_at } = userResult.rows[0];
+
+    let query = 'SELECT * FROM notifications WHERE user_id = $1';
+    const params = [req.user.id];
+
+    // Check if we should filter "new" notifications
+    const isMuted = muted_until && new Date(muted_until) > new Date();
+    const isOff = !notifications_enabled;
+
+    if (isMuted || isOff) {
+      // If paused, only show notifications created BEFORE the pause started
+      // Use COALESCE to fallback to NOW() if paused_at is missing for some reason
+      if (notifications_paused_at) {
+        query += ' AND created_at < $2';
+        params.push(notifications_paused_at);
+      }
+    }
+
+    query += ' ORDER BY created_at DESC LIMIT 50';
+
+    const notifications = await db.query(query, params);
     res.json(notifications.rows);
   } catch (error) {
+
     console.error('Get notifications error:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
@@ -43,16 +63,9 @@ const markAllAsRead = async (req, res) => {
 // Utility function to create notification
 const createNotification = async (user_id, message, type) => {
   try {
-    // Check if user has notifications muted
-    const userResult = await db.query('SELECT muted_until FROM users WHERE id = $1', [user_id]);
-    if (userResult.rows.length > 0) {
-      const mutedUntil = userResult.rows[0].muted_until;
-      if (mutedUntil && new Date(mutedUntil) > new Date()) {
-        console.log(`Notification suppressed for user ${user_id} (muted until ${mutedUntil})`);
-        return;
-      }
-    }
-
+    // We always create the notification in DB now.
+    // The GET API will handle hiding it if the user is muted.
+    // This way, they show up once the mute hours end.
     await db.query(
       'INSERT INTO notifications (user_id, message, type) VALUES ($1, $2, $3)',
       [user_id, message, type]

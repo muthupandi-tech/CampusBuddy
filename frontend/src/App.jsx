@@ -10,6 +10,9 @@ import Messages from './pages/Messages';
 import Analytics from './pages/Analytics';
 import Classrooms from './pages/Classrooms';
 import ClassroomDetail from './pages/ClassroomDetail';
+import MyClass from './pages/MyClass';
+import ManageClass from './pages/ManageClass';
+import AssignClass from './pages/AssignClass';
 
 // A simple protective wrapper for routes
 const ProtectedRoute = ({ children }) => {
@@ -107,6 +110,24 @@ function App() {
         <Route path="/classrooms/:id" element={
           <ProtectedRoute>
             <ClassroomDetail />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/my-class" element={
+          <ProtectedRoute>
+            <MyClass />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/manage-class" element={
+          <ProtectedRoute>
+            <ManageClass />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/assign-class" element={
+          <ProtectedRoute>
+            <AssignClass />
           </ProtectedRoute>
         } />
       </Routes>

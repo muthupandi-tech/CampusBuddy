@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, Trash2, Clock } from 'lucide-react';
 import api from '../services/api';
+import { socket } from '../services/socket';
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
@@ -18,9 +19,20 @@ const NotificationBell = () => {
 
   useEffect(() => {
     fetchNotifications();
+    
+    // Real-time update via socket
+    socket.on('notification_new', (data) => {
+      fetchNotifications();
+      // Optional: Show a browser notification or toast here if needed
+    });
+
     const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
-    return () => clearInterval(interval);
+    return () => {
+      socket.off('notification_new');
+      clearInterval(interval);
+    };
   }, []);
+
 
   const handleMarkRead = async (id) => {
     try {

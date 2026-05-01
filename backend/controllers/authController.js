@@ -32,7 +32,7 @@ const signup = async (req, res) => {
 
     const newUser = await db.query(
       `INSERT INTO users (name, email, phone, password, role, department, year) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, email, role, department, year`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, email, role, department, admin_department, year`,
       [name, email || null, phone || null, hashedPassword, role, department || null, year || null]
     );
 
@@ -183,7 +183,7 @@ const verifyOtp = async (req, res) => {
 
     const newUser = await db.query(
       `INSERT INTO users (name, email, phone, password, role, department, year) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, email, role, department, year`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, email, role, department, admin_department, year`,
       [name, email || null, phone || null, hashedPassword, role, department || null, year || null]
     );
 

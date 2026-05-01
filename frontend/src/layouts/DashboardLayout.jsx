@@ -8,7 +8,9 @@ import {
   User, 
   Settings,
   BarChart3,
-  Library
+  Library,
+  Users,
+  Shield
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import Chatbot from '../components/Chatbot';
@@ -24,6 +26,14 @@ const DashboardLayout = ({ children }) => {
     { name: 'Classrooms', path: '/classrooms', icon: Library },
     { name: 'Messages', path: '/messages', icon: MessageSquare },
   ];
+
+  if (user?.role === 'student') {
+    navItems.push({ name: 'My Class', path: '/my-class', icon: Users });
+  } else if (user?.role === 'staff') {
+    navItems.push({ name: 'Manage Class', path: '/manage-class', icon: Users });
+  } else if (user?.role === 'admin') {
+    navItems.push({ name: 'Assign Class', path: '/assign-class', icon: Shield });
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
@@ -53,17 +63,7 @@ const DashboardLayout = ({ children }) => {
           })}
         </div>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 flex items-center space-x-3 transition-colors duration-300">
-             <div className="h-10 w-10 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-brand-600 dark:text-brand-400 font-bold border-2 border-white dark:border-slate-800 overflow-hidden">
-                {user?.avatar_url ? <img src={user.avatar_url} className="h-full w-full object-cover" /> : user?.name?.charAt(0)}
-             </div>
-             <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{user?.name}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate capitalize">{user?.role}</p>
-             </div>
-          </div>
-        </div>
+
       </aside>
 
       {/* Main Content */}

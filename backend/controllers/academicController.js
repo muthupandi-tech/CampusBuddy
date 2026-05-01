@@ -1,206 +1,167 @@
 const db = require('../config/db');
-const { createNotification } = require('./notificationController');
 
-// @route   POST /api/academic/resources
-const uploadResource = async (req, res) => {
+// --- Subject Controllers ---
+
+// GET /api/subjects
+exports.getSubjects = async (req, res) => {
   try {
-    const { title, subject_id } = req.body;
-    
-    if (!req.files || !req.files.file) {
-       return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    const file = req.files.file;
-    const allowed = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.jpg', '.jpeg', '.png', '.mp4'];
-    const path = require('path');
-    const ext = path.extname(file.name).toLowerCase();
-    
-    if (!allowed.includes(ext)) {
-       return res.status(400).json({ error: 'Invalid file type! Allowed extensions: ' + allowed.join(', ') });
-    }
+    const subjects = await db.query('SELECT * FROM subjects ORDER BY code');
+    res.json(subjects.rows);
+  } catch (error) {
+    console.error('Error fetching subjects:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
 
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = uniqueSuffix + ext;
-    const uploadPath = path.join(__dirname, '../uploads', filename);
+// --- Staff Subject Integration ---
 
-    await file.mv(uploadPath);
-
-    const file_url = `/uploads/${filename}`;
-    const uploaded_by = req.user.id;
-
-    const resourceDb = await db.query(
-      `INSERT INTO resources (title, file_url, subject_id, uploaded_by) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [title, file_url, subject_id, uploaded_by]
+// POST /api/staff/subjects
+exports.assignStaffSubject = async (req, res) => {
+  try {
+    const { staff_id, subject_id } = req.body;
+    await db.query(
+      'INSERT INTO staff_subjects (staff_id, subject_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [staff_id, subject_id]
     );
+    res.json({ message: 'Subject assigned to staff' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to assign subject' });
+  }
+};
 
-    res.status(201).json(resourceDb.rows[0]);
+// GET /api/staff/subjects/:staffId
+exports.getStaffSubjects = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    const subjects = await db.query(`
+      SELECT s.* 
+      FROM subjects s
+      JOIN staff_subjects ss ON s.id = ss.subject_id
+      WHERE ss.staff_id = $1
+      ORDER BY s.code
+    `, [staffId]);
+    res.json(subjects.rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch staff subjects' });
+  }
+};
 
-    // Trigger Notifications for students in this subject
-    const studentsInSubject = await db.query(
-      `SELECT DISTINCT s.user_id 
-       FROM students s
-       JOIN attendance a ON s.id = a.student_id
-       WHERE a.subject_id = $1`,
-      [subject_id]
+// DELETE /api/staff/subjects
+exports.removeStaffSubject = async (req, res) => {
+  try {
+    const { staff_id, subject_id } = req.body;
+    await db.query(
+      'DELETE FROM staff_subjects WHERE staff_id = $1 AND subject_id = $2',
+      [staff_id, subject_id]
     );
-
-    studentsInSubject.rows.forEach(student => {
-      createNotification(student.user_id, `New study resource uploaded for your subject: ${title}`, 'resource');
-    });
+    res.json({ message: 'Subject removed from staff' });
   } catch (error) {
-    console.error('Resource upload error:', error.message);
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ error: 'Failed to remove subject' });
   }
 };
 
-// @route   GET /api/academic/resources/:subjectId 
-const getResources = async (req, res) => {
+// --- Staff Qualification Controllers ---
+
+// POST /api/staff/qualifications
+exports.addStaffQualification = async (req, res) => {
   try {
-    const { subjectId } = req.params;
-    
-    // Wait, in a broader MVP fetch, they might want all subjects. If 'all', omit filter
-    if (subjectId === 'all') {
-      const allRes = await db.query(`SELECT r.*, s.name as subject_name FROM resources r JOIN subjects s ON r.subject_id = s.id ORDER BY r.created_at DESC`);
-      return res.json(allRes.rows);
-    }
-    
-    const resources = await db.query(
-      'SELECT * FROM resources WHERE subject_id = $1 ORDER BY created_at DESC',
-      [subjectId]
+    const { staff_id, degree, major, college } = req.body;
+    const result = await db.query(
+      'INSERT INTO staff_qualifications (staff_id, degree, major, college) VALUES ($1, $2, $3, $4) RETURNING *',
+      [staff_id, degree, major, college]
     );
-    res.json(resources.rows);
+    res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Failed to add qualification' });
   }
 };
 
-// @route   POST /api/academic/announcements
-const createAnnouncement = async (req, res) => {
+// GET /api/staff/qualifications/:staffId
+exports.getStaffQualifications = async (req, res) => {
   try {
-    const { title, description } = req.body;
-    const posted_by = req.user.id;
-    
-    const announcement = await db.query(
-      `INSERT INTO announcements (title, description, posted_by, expires_at) 
-       VALUES ($1, $2, $3, NOW() + INTERVAL '24 hours') RETURNING *`,
-      [title, description, posted_by]
+    const { staffId } = req.params;
+    const quals = await db.query(
+      'SELECT * FROM staff_qualifications WHERE staff_id = $1 ORDER BY id',
+      [staffId]
     );
-    
-    res.status(201).json(announcement.rows[0]);
-
-    // Notify all students/staff
-    const allUsers = await db.query('SELECT id FROM users WHERE id != $1', [posted_by]);
-    allUsers.rows.forEach(user => {
-      createNotification(user.id, `New Announcement: ${title}`, 'announcement');
-    });
+    res.json(quals.rows);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Failed to fetch qualifications' });
   }
 };
 
-const getAnnouncements = async (req, res) => {
+// DELETE /api/staff/qualifications/:id
+exports.deleteQualification = async (req, res) => {
   try {
-    const ann = await db.query(
-      `SELECT a.*, u.name as posted_by_name, u.role as posted_role 
-       FROM announcements a 
-       JOIN users u ON a.posted_by = u.id 
-       WHERE a.expires_at > NOW()
-       ORDER BY a.created_at DESC`
-    );
-    res.json(ann.rows);
+    const { id } = req.params;
+    await db.query('DELETE FROM staff_qualifications WHERE id = $1', [id]);
+    res.json({ message: 'Qualification deleted' });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Failed to delete qualification' });
   }
 };
 
-// @route   GET /api/academic/announcements/history
-const getAnnouncementHistory = async (req, res) => {
+// --- Dashboard Integrations (Restored) ---
+
+// GET /api/academic/announcements
+exports.getAnnouncements = async (req, res) => {
   try {
-    const ann = await db.query(
-      `SELECT a.*, u.name as posted_by_name, u.role as posted_role 
-       FROM announcements a 
-       JOIN users u ON a.posted_by = u.id 
-       WHERE a.expires_at <= NOW()
-       ORDER BY a.created_at DESC`
-    );
-    res.json(ann.rows);
+    const results = await db.query(`
+      SELECT a.*, u.role as posted_role 
+      FROM announcements a
+      LEFT JOIN users u ON a.posted_by = u.id
+      WHERE a.expires_at IS NULL OR a.expires_at > NOW() 
+      ORDER BY a.created_at DESC
+    `);
+    res.json(results.rows);
   } catch (error) {
+    console.error('Error fetching announcements:', error);
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-// @route   POST /api/academic/events
-const createEvent = async (req, res) => {
+// GET /api/academic/announcements/history
+exports.getAnnouncementHistory = async (req, res) => {
   try {
-    const { title, description, event_date, location } = req.body;
-    
-    const ev = await db.query(
-      `INSERT INTO events (title, description, event_date, location) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [title, description, event_date, location]
-    );
-    
-    res.status(201).json(ev.rows[0]);
-
-    // Notify all users about new event
-    const allUsers = await db.query('SELECT id FROM users');
-    allUsers.rows.forEach(user => {
-      createNotification(user.id, `New Event Scheduled: ${title}`, 'event');
-    });
+    const results = await db.query(`
+      SELECT a.*, u.role as posted_role 
+      FROM announcements a
+      LEFT JOIN users u ON a.posted_by = u.id
+      WHERE a.expires_at IS NOT NULL AND a.expires_at <= NOW() 
+      ORDER BY a.created_at DESC
+    `);
+    res.json(results.rows);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-const getEvents = async (req, res) => {
+// GET /api/academic/events
+exports.getEvents = async (req, res) => {
   try {
-    const ev = await db.query(`SELECT * FROM events WHERE event_date >= CURRENT_DATE ORDER BY event_date ASC`);
-    res.json(ev.rows);
+    const results = await db.query('SELECT *, NULL as event_time FROM events WHERE event_date >= NOW() ORDER BY event_date ASC');
+    res.json(results.rows);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-// @route   GET /api/academic/events/history
-const getEventHistory = async (req, res) => {
+// GET /api/academic/events/history
+exports.getEventHistory = async (req, res) => {
   try {
-    const ev = await db.query(`SELECT * FROM events WHERE event_date < CURRENT_DATE ORDER BY event_date DESC`);
-    res.json(ev.rows);
+    const results = await db.query('SELECT *, NULL as event_time FROM events WHERE event_date < NOW() ORDER BY event_date DESC');
+    res.json(results.rows);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-// @route   GET /api/academic/timetable
-const getTimetable = async (req, res) => {
+// GET /api/academic/resources/all
+exports.getAllResources = async (req, res) => {
   try {
-    const { dept, year } = req.query;
-    let query = `
-      SELECT t.*, s.name as subject_name, s.code as subject_code 
-      FROM timetable t 
-      JOIN subjects s ON t.subject_id = s.id 
-    `;
-    const params = [];
-    
-    if (dept && year) {
-      query += ` WHERE t.department = $1 AND t.year = $2`;
-      params.push(dept, year);
-    }
-    
-    query += ` ORDER BY CASE t.day
-                 WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
-                 WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 ELSE 6 END, t.time_slot`;
-                 
-    const tt = await db.query(query, params);
-    res.json(tt.rows);
+    const results = await db.query('SELECT * FROM resources ORDER BY created_at DESC');
+    res.json(results.rows);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
-};
-
-module.exports = {
-  uploadResource, getResources,
-  createAnnouncement, getAnnouncements, getAnnouncementHistory,
-  createEvent, getEvents, getEventHistory,
-  getTimetable
 };

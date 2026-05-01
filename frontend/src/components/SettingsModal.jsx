@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { X, Bell, Moon, Sun, Lock, Shield, CheckCircle2, Volume2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
 
 const SettingsModal = ({ onClose }) => {
+  const { user, updateUser } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('Notifications');
-  const [notifs, setNotifs] = useState(true);
+  const [notifs, setNotifs] = useState(user?.notifications_enabled ?? true);
+
   const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [showPassword, setShowPassword] = useState(false);
   
@@ -51,6 +54,19 @@ const SettingsModal = ({ onClose }) => {
     }
   };
 
+  const handleToggleNotifications = async () => {
+    const newState = !notifs;
+    setNotifs(newState);
+    try {
+      const res = await api.put('/users/preferences', { notifications_enabled: newState });
+      if (res.data.user) updateUser(res.data.user);
+    } catch (err) {
+      console.error('Failed to update notifications preference');
+      setNotifs(!newState); // revert on error
+    }
+  };
+
+
   const handleMute = async (hours) => {
     setIsUpdatingPrefs(true);
     setPrefStatus({ text: '', type: '' });
@@ -63,12 +79,14 @@ const SettingsModal = ({ onClose }) => {
     }
 
     try {
-      await api.put('/users/preferences', { muted_until: mutedUntil });
+      const res = await api.put('/users/preferences', { muted_until: mutedUntil });
+      if (res.data.user) updateUser(res.data.user);
       setPrefStatus({ 
         text: hours ? `Notifications muted for ${hours} hours.` : 'Notifications unmuted.', 
         type: 'success' 
       });
     } catch (err) {
+
       setPrefStatus({ text: 'Failed to update preferences.', type: 'error' });
     } finally {
       setIsUpdatingPrefs(false);
@@ -134,7 +152,7 @@ const SettingsModal = ({ onClose }) => {
                     </div>
                   </div>
                   <button 
-                    onClick={() => setNotifs(!notifs)}
+                    onClick={handleToggleNotifications}
                     className={`w-12 h-6 rounded-full transition-all relative ${notifs ? 'bg-brand-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                   >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${notifs ? 'right-1' : 'left-1'}`} />

@@ -26,6 +26,9 @@ const ClassroomDetail = () => {
   const [file, setFile] = useState(null);
   const [resourceTitle, setResourceTitle] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [allSubjects, setAllSubjects] = useState([]);
 
   // Chat state
   const [messages, setMessages] = useState([]);
@@ -50,7 +53,10 @@ const ClassroomDetail = () => {
 
   useEffect(() => {
     if (classroom && classroom.isMember) {
-      if (activeTab === 'resources') fetchResources();
+      if (activeTab === 'resources') {
+        fetchResources();
+        fetchSubjects();
+      }
       if (activeTab === 'chat') {
         fetchMessages();
         setupSocket();
@@ -101,27 +107,44 @@ const ClassroomDetail = () => {
   // --- RESOURCES ---
   const fetchResources = async () => {
     try {
-      const res = await api.get(`/classrooms/${id}/resources`);
+      const res = await api.get(`/classrooms/${id}/resources${filterSubject ? `?subjectId=${filterSubject}` : ''}`);
       setResources(res.data);
     } catch (err) {
       console.error(err);
     }
   };
 
+  const fetchSubjects = async () => {
+    try {
+      const res = await api.get('/academic/subjects');
+      setAllSubjects(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'resources') fetchResources();
+  }, [filterSubject]);
+
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) return;
+
     try {
       setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', resourceTitle);
-      
+      if (selectedSubject) formData.append('subject_id', selectedSubject);
+
       await api.post(`/classrooms/${id}/resources`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+
       setFile(null);
       setResourceTitle('');
+      setSelectedSubject('');
       fetchResources();
     } catch (err) {
       alert('Upload failed');
@@ -322,14 +345,24 @@ const ClassroomDetail = () => {
                 {classroom.isStaff && (
                   <form onSubmit={handleUpload} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <h3 className="font-medium text-slate-900 dark:text-white mb-4">Upload Resource</h3>
-                    <div className="flex flex-col gap-4">
-                      <input 
-                        type="text"
-                        placeholder="Resource Title (optional)"
-                        value={resourceTitle}
-                        onChange={(e) => setResourceTitle(e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
-                      />
+                    <div className="grid gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input 
+                          type="text"
+                          placeholder="Resource Title (optional)"
+                          value={resourceTitle}
+                          onChange={(e) => setResourceTitle(e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                        />
+                        <select 
+                          value={selectedSubject}
+                          onChange={(e) => setSelectedSubject(e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                        >
+                          <option value="">Select Subject (Optional)</option>
+                          {allSubjects.map(s => <option key={s.id} value={s.id}>{s.code} - {s.name}</option>)}
+                        </select>
+                      </div>
                       <div className="flex flex-col sm:flex-row gap-4 items-center">
                         <input 
                           type="file" 
@@ -349,6 +382,21 @@ const ClassroomDetail = () => {
                   </form>
                 )}
 
+                <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800/50 p-2 rounded-xl">
+                   <div className="flex items-center gap-2 px-3 text-slate-500 dark:text-slate-400">
+                      <FileText size={16} />
+                      <span className="text-sm font-bold">Resources</span>
+                   </div>
+                   <select 
+                     value={filterSubject}
+                     onChange={(e) => setFilterSubject(e.target.value)}
+                     className="bg-transparent text-xs font-bold text-slate-600 dark:text-slate-400 outline-none border-none p-2"
+                   >
+                     <option value="">All Subjects</option>
+                     {allSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                   </select>
+                </div>
+
                 <div className="grid gap-3">
                   {resources.length === 0 ? (
                     <p className="text-center text-slate-500 py-10">No resources available yet.</p>
@@ -365,7 +413,14 @@ const ClassroomDetail = () => {
                           <FileIcon className="w-6 h-6" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-slate-900 dark:text-white truncate">{res.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-slate-900 dark:text-white truncate">{res.title}</h4>
+                            {res.subject_name && (
+                              <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-400 rounded uppercase">
+                                {res.subject_name}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             Uploaded on {new Date(res.created_at).toLocaleDateString()}
                           </p>

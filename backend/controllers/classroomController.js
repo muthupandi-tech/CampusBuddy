@@ -222,7 +222,7 @@ exports.removeMember = async (req, res) => {
 exports.addResource = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title } = req.body || {};
+    const { title, subject_id } = req.body || {};
     const staffId = req.user.id;
 
     const classCheck = await db.query('SELECT staff_id FROM classrooms WHERE id = $1', [id]);
@@ -245,8 +245,8 @@ exports.addResource = async (req, res) => {
       }
 
       const resource = await db.query(
-        'INSERT INTO classroom_resources (classroom_id, title, file_url) VALUES ($1, $2, $3) RETURNING *',
-        [id, title || file.name, filePath]
+        'INSERT INTO classroom_resources (classroom_id, title, file_url, subject_id) VALUES ($1, $2, $3, $4) RETURNING *',
+        [id, title || file.name, filePath, subject_id || null]
       );
 
       res.json(resource.rows[0]);
@@ -261,7 +261,17 @@ exports.addResource = async (req, res) => {
 exports.getResources = async (req, res) => {
   try {
     const { id } = req.params;
-    const resources = await db.query('SELECT * FROM classroom_resources WHERE classroom_id = $1 ORDER BY created_at DESC', [id]);
+    const { subjectId } = req.query;
+    let query = 'SELECT r.*, s.name as subject_name FROM classroom_resources r LEFT JOIN subjects s ON r.subject_id = s.id WHERE r.classroom_id = $1';
+    let params = [id];
+
+    if (subjectId) {
+      query += ' AND r.subject_id = $2';
+      params.push(subjectId);
+    }
+
+    query += ' ORDER BY r.created_at DESC';
+    const resources = await db.query(query, params);
     res.json(resources.rows);
   } catch (error) {
     console.error('Error fetching resources:', error);

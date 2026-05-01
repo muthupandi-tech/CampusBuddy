@@ -75,7 +75,9 @@ const UserMenu = () => {
         </div>
         <div className="hidden sm:block text-left">
           <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-none">{user?.name}</p>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 capitalize">{user?.role}</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 capitalize">
+            {user?.role} {user?.admin_department || user?.department ? `• ${user?.admin_department || user?.department}` : ''}
+          </p>
         </div>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>

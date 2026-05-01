@@ -1,28 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, roleMiddleware } = require('../middleware/authMiddleware');
-const {
-  uploadResource, getResources,
-  createAnnouncement, getAnnouncements, getAnnouncementHistory,
-  createEvent, getEvents, getEventHistory,
-  getTimetable
-} = require('../controllers/academicController');
+const academicController = require('../controllers/academicController');
+const { authMiddleware } = require('../middleware/authMiddleware');
 
-// Resources mapping securely
-router.post('/resources', authMiddleware, roleMiddleware(['staff']), uploadResource);
-router.get('/resources/:subjectId', authMiddleware, getResources); 
+// Subjects
+router.get('/subjects', authMiddleware, academicController.getSubjects);
 
-// Announcements mapping seamlessly
-router.post('/announcements', authMiddleware, roleMiddleware(['admin', 'staff']), createAnnouncement);
-router.get('/announcements', authMiddleware, getAnnouncements);
-router.get('/announcements/history', authMiddleware, getAnnouncementHistory);
+// Staff Subjects
+router.post('/staff/subjects', authMiddleware, academicController.assignStaffSubject);
+router.get('/staff/subjects/:staffId', authMiddleware, academicController.getStaffSubjects);
+router.delete('/staff/subjects', authMiddleware, academicController.removeStaffSubject);
 
-// Events strictly tied natively inside
-router.post('/events', authMiddleware, roleMiddleware(['admin']), createEvent);
-router.get('/events', authMiddleware, getEvents);
-router.get('/events/history', authMiddleware, getEventHistory);
+// Staff Qualifications
+router.post('/staff/qualifications', authMiddleware, academicController.addStaffQualification);
+router.get('/staff/qualifications/:staffId', authMiddleware, academicController.getStaffQualifications);
+router.delete('/staff/qualifications/:id', authMiddleware, academicController.deleteQualification);
 
-// Timetable organically maps
-router.get('/timetable', authMiddleware, getTimetable);
+// Dashboard Integrations
+router.get('/announcements', authMiddleware, academicController.getAnnouncements);
+router.get('/announcements/history', authMiddleware, academicController.getAnnouncementHistory);
+router.get('/events', authMiddleware, academicController.getEvents);
+router.get('/events/history', authMiddleware, academicController.getEventHistory);
+router.get('/resources/all', authMiddleware, academicController.getAllResources);
 
 module.exports = router;

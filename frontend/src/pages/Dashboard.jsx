@@ -15,7 +15,6 @@ const StudentDashboard = () => {
   const [events, setEvents] = useState([]);
   const [evtHistory, setEvtHistory] = useState([]);
   const [resources, setResources] = useState([]);
-  const [timetable, setTimetable] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [resourceFilter, setResourceFilter] = useState('all');
@@ -45,12 +44,6 @@ const StudentDashboard = () => {
         setEvents(resEvt.data);
         setEvtHistory(resEvtHist.data);
         setResources(resRes.data);
-
-        // Fetch Timetable based on user info
-        if (dashData?.user?.department && dashData?.user?.year) {
-           const ttRes = await api.get(`/academic/timetable?dept=${dashData.user.department}&year=${dashData.user.year}`);
-           setTimetable(ttRes.data);
-        }
 
         // Fetch admin messages (separate module)
         try {
@@ -286,39 +279,6 @@ const StudentDashboard = () => {
           </div>
         </div>
       )}
-
-      {/* Timetable */}
-      <div className="card p-6">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center mb-6">
-          <Activity className="h-5 w-5 mr-2 text-emerald-500" /> Weekly Timetable
-        </h3>
-        {timetable.length === 0 ? (
-          <p className="text-slate-500 dark:text-slate-400 text-center py-4">No timetable data mapped for your year/department.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-700">
-                  <th className="py-3 px-4 font-bold text-slate-600 dark:text-slate-400 text-sm">Day</th>
-                  <th className="py-3 px-4 font-bold text-slate-600 dark:text-slate-400 text-sm">Time Slot</th>
-                  <th className="py-3 px-4 font-bold text-slate-600 dark:text-slate-400 text-sm">Subject</th>
-                  <th className="py-3 px-4 font-bold text-slate-600 dark:text-slate-400 text-sm">Code</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {timetable.map((slot, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors border-b border-slate-100 dark:border-slate-700/50">
-                    <td className="py-3 px-4 text-sm font-semibold text-slate-800 dark:text-slate-200">{slot.day}</td>
-                    <td className="py-3 px-4 text-sm text-brand-600 dark:text-brand-400 font-medium">{slot.time_slot}</td>
-                    <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{slot.subject_name}</td>
-                    <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{slot.subject_code}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
       {/* Resources & Subjects */}
       <div className="card p-6">

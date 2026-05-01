@@ -8,6 +8,20 @@ import {
 import { Activity, TrendingUp, PieChart as PieIcon, Loader2, Award, Users, MapPin } from 'lucide-react';
 import api from '../services/api';
 
+const CHART_HEIGHT = 300;
+const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
+
+const isDark = () => document.documentElement.classList.contains('dark');
+
+const tooltipStyle = () => ({
+  borderRadius: '12px',
+  border: 'none',
+  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.15)',
+  backgroundColor: isDark() ? '#1e293b' : '#fff',
+  color: isDark() ? '#f1f5f9' : '#1e293b',
+  fontSize: '13px',
+});
+
 const Analytics = () => {
   const { user } = useContext(AuthContext);
   const [data, setData] = useState(null);
@@ -37,8 +51,6 @@ const Analytics = () => {
     </DashboardLayout>
   );
 
-  const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
-
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in-up">
@@ -55,25 +67,15 @@ const Analytics = () => {
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
                   <Activity className="text-indigo-500" size={20} /> Subject-wise Attendance (%)
                 </h3>
-                <div className="h-80 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.attendanceStats}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
-                      <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{fill: 'var(--chart-tick)', fontSize: 12}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--chart-tick)', fontSize: 12}} />
-                      <Tooltip 
-                        contentStyle={{
-                          borderRadius: '12px', 
-                          border: 'none', 
-                          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                          backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#fff',
-                          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#1e293b'
-                        }}
-                      />
-                      <Bar dataKey="percentage" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                  <BarChart data={data.attendanceStats}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid, #f1f5f9)" />
+                    <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-tick, #94a3b8)', fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-tick, #94a3b8)', fontSize: 12 }} />
+                    <Tooltip contentStyle={tooltipStyle()} />
+                    <Bar dataKey="percentage" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
 
               {/* Attendance Trend Line Chart */}
@@ -81,31 +83,21 @@ const Analytics = () => {
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
                   <TrendingUp className="text-brand-500" size={20} /> Monthly Attendance Trend
                 </h3>
-                <div className="h-80 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data.overallTrend}>
-                      <defs>
-                        <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ec4899" stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
-                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: 'var(--chart-tick)', fontSize: 12}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--chart-tick)', fontSize: 12}} />
-                      <Tooltip 
-                        contentStyle={{
-                          borderRadius: '12px', 
-                          border: 'none', 
-                          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                          backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#fff',
-                          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#1e293b'
-                        }}
-                      />
-                      <Area type="monotone" dataKey="attendance" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+                <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                  <AreaChart data={data.overallTrend}>
+                    <defs>
+                      <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid, #f1f5f9)" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-tick, #94a3b8)', fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-tick, #94a3b8)', fontSize: 12 }} />
+                    <Tooltip contentStyle={tooltipStyle()} />
+                    <Area type="monotone" dataKey="attendance" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
@@ -133,53 +125,54 @@ const Analytics = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* User Distribution Pie Chart */}
             <div className="card p-6">
-              <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
                 <Users className="text-blue-500" size={20} /> User Distribution
               </h3>
-              <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data.userDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="count"
-                      nameKey="role"
-                      label
-                    >
-                      {data.userDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend verticalAlign="bottom" height={36}/>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                <PieChart>
+                  <Pie
+                    data={data.userDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="count"
+                    nameKey="role"
+                    label
+                  >
+                    {data.userDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle()} />
+                  <Legend verticalAlign="bottom" height={36}/>
+                </PieChart>
+              </ResponsiveContainer>
             </div>
 
             {/* Department Distribution Bar Chart */}
             <div className="card p-6">
-              <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
                 <MapPin className="text-emerald-500" size={20} /> Department Stats
               </h3>
-              <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.departmentDistribution} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="department" type="category" axisLine={false} tickLine={false} width={80} />
-                    <Tooltip 
-                       contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                    />
-                    <Bar dataKey="count" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                <BarChart data={data.departmentDistribution} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--chart-grid, #f1f5f9)" />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="department" type="category" axisLine={false} tickLine={false} width={80} tick={{ fill: 'var(--chart-tick, #94a3b8)', fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle()} />
+                  <Bar dataKey="count" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
+          </div>
+        )}
+
+        {!data && !loading && (
+          <div className="py-20 text-center bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+            <Activity className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+            <p className="text-slate-500 dark:text-slate-400 font-medium">No analytics data available yet.</p>
           </div>
         )}
       </div>

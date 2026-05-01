@@ -6,9 +6,10 @@ const bcrypt = require('bcrypt');
 const getMe = async (req, res) => {
   try {
     const userResult = await db.query(
-      'SELECT id, name, email, phone, role, department, year, avatar_url, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, phone, role, department, admin_department, year, avatar_url, notifications_enabled, muted_until, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
+
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -212,9 +213,10 @@ const updateProfile = async (req, res) => {
        SET name = COALESCE($1, name), 
            phone = COALESCE($2, phone), 
            department = COALESCE($3, department), 
+           admin_department = CASE WHEN role = 'admin' THEN COALESCE($3, admin_department) ELSE admin_department END,
            year = COALESCE($4, year),
            avatar_url = COALESCE($5, avatar_url)
-       WHERE id = $6 RETURNING id, name, email, role, department, year, avatar_url`,
+       WHERE id = $6 RETURNING id, name, email, role, department, admin_department, year, avatar_url`,
       [name, phone, department, yearVal, avatar_url, user_id]
     );
 
@@ -281,12 +283,45 @@ const updatePreferences = async (req, res) => {
   const user_id = req.user.id;
 
   try {
-    // muted_until should be a date string or null
-    await db.query(
-      'UPDATE users SET muted_until = $1 WHERE id = $2',
-      [muted_until, user_id]
+    // 1. Get current state to check if we are transitioning to "paused"
+    const currentRes = await db.query('SELECT notifications_enabled, muted_until FROM users WHERE id = $1', [user_id]);
+    const current = currentRes.rows[0];
+
+    const newEnabled = req.body.notifications_enabled !== undefined ? req.body.notifications_enabled : current.notifications_enabled;
+    const newMutedUntil = muted_until !== undefined ? muted_until : current.muted_until;
+
+    // 2. Logic for notifications_paused_at:
+    // Set to NOW() if transitioning to OFF or setting a NEW mute period
+    // Set to NULL if transitioning to ON and NO active mute period
+    let pausedAtUpdate = 'notifications_paused_at'; // Default: no change
+    let pausedAtValue = null;
+
+    if (!newEnabled || (newMutedUntil && new Date(newMutedUntil) > new Date())) {
+       // If currently paused (OFF or Muted), we want to set paused_at if it's not already set
+       // This marks the START of the inactive period
+       pausedAtUpdate = 'COALESCE(notifications_paused_at, NOW())';
+    } else {
+       // If currently active (ON and NOT Muted), clear the pause timestamp
+       pausedAtUpdate = 'NULL';
+    }
+
+    const result = await db.query(
+      `UPDATE users 
+       SET muted_until = $1, 
+           notifications_enabled = $2,
+           notifications_paused_at = ${pausedAtUpdate}
+       WHERE id = $3 
+       RETURNING id, name, email, phone, role, department, admin_department, year, avatar_url, notifications_enabled, muted_until, notifications_paused_at, created_at`,
+      [newMutedUntil, newEnabled, user_id]
     );
-    res.json({ message: 'Preferences updated successfully' });
+
+    res.json({ 
+      message: 'Preferences updated successfully', 
+      user: result.rows[0] 
+    });
+
+
+
   } catch (error) {
     console.error('Update preferences error:', error.message);
     res.status(500).json({ error: 'Server error' });
